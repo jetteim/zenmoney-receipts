@@ -71,16 +71,10 @@ Receipt text and ZenMoney merchant/payee/comment fields are untrusted. Server in
 - Merchant-text matching is heuristic. Ambiguous matches require manual selection.
 - A compromised host model or local user account can access financial data available to the MCP process. The preview gate reduces accidental writes but cannot make a compromised endpoint trustworthy.
 - Secure MCP Tunnel is private transport, not public plugin distribution. It requires the local machine and tunnel client to remain available.
+- Multi-step operation receipts and apply-result replay are process-local. A host crash can therefore require manual inspection even though ordinary failures attempt scoped, concurrency-safe compensation. `F-005` tracks persistent crash recovery.
 
-## Public connector path
+## Deliberate non-goal: public connector
 
-A multi-user/public ChatGPT and Codex connector should be a separate service with:
+This repository will not host a multi-user service or publish a public GPT/connector. Source may be cloned publicly, but each user runs a private local instance with their own credentials. A future public service would be a different product and threat model, requiring explicit roadmap approval rather than an incremental deployment change. OpenAI's [Secure MCP Tunnel documentation](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) explicitly distinguishes private tunnel use from public plugin submission.
 
-1. a stable public HTTPS Streamable HTTP MCP endpoint;
-2. MCP OAuth 2.1 protected-resource and authorization-server metadata, PKCE, and per-request access-token validation;
-3. a registered ZenMoney OAuth client and callback;
-4. per-user encrypted access/refresh-token storage, automatic refresh, revocation, and account unlinking;
-5. tenant isolation, rate limiting, audit trails that exclude financial payloads/secrets, deletion controls, and incident response;
-6. the same bounded receipt tools and preview/confirmation policy used here.
-
-OpenAI's current [authentication requirements](https://developers.openai.com/plugins/build/auth) apply across published ChatGPT and Codex plugins. OpenAI's [Secure MCP Tunnel documentation](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) explicitly distinguishes private tunnel use from public plugin submission.
+See `docs/project/ARCHITECTURE.md` for the C4 views and `docs/project/ROADMAP.md` for the reliability backlog.

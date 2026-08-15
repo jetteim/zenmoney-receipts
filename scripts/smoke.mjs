@@ -16,7 +16,8 @@ const expectedTools = [
   "zenmoney_apply_receipt_reconciliation",
   "zenmoney_preview_new_receipt",
   "zenmoney_apply_new_receipt",
-  "zenmoney_category_summary"
+  "zenmoney_category_summary",
+  "zenmoney_spending_insights"
 ];
 
 const client = new Client({ name: "zenmoney-receipts-smoke", version: "1.0.0" });

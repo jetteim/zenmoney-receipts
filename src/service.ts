@@ -759,6 +759,123 @@ export class ZenMoneyReceiptService {
     };
   }
 
+  async spendingInsights(input: { dateFrom: string; dateTo: string; limit?: number }) {
+    const limit = Math.min(input.limit ?? 500, 500);
+    const [transactions, categories] = await Promise.all([
+      this.listTransactions({ dateFrom: input.dateFrom, dateTo: input.dateTo, limit }),
+      this.listCategories(false)
+    ]);
+    const byId = new Map(categories.map((category) => [category.id, category]));
+    const expenseTransactions = transactions.filter(
+      (transaction) => !transaction.deleted && transaction.outcome > 0 && transaction.income <= 0
+    );
+    const byInstrument = new Map<
+      string,
+      {
+        instrument: number | null;
+        total: number;
+        transactionCount: number;
+        months: Map<string, number>;
+        categories: Map<string, { categoryId: string | null; category: string; total: number; transactionCount: number }>;
+        payees: Map<string, { payee: string; total: number; transactionCount: number; months: Set<string> }>;
+        largest: Array<{ id: string; date: string | null; payee: string | null; category: string; amount: number }>;
+      }
+    >();
+
+    for (const transaction of expenseTransactions) {
+      const instrumentKey = String(transaction.outcomeInstrument ?? "unknown");
+      const bucket = byInstrument.get(instrumentKey) ?? {
+        instrument: transaction.outcomeInstrument,
+        total: 0,
+        transactionCount: 0,
+        months: new Map<string, number>(),
+        categories: new Map(),
+        payees: new Map(),
+        largest: [] as Array<{
+          id: string;
+          date: string | null;
+          payee: string | null;
+          category: string;
+          amount: number;
+        }>
+      };
+      const month = transaction.date?.slice(0, 7) ?? "unknown";
+      const categoryId = primaryCategory(transaction.tag, byId);
+      const category = categoryId ? byId.get(categoryId)?.title ?? "Unknown category" : "Uncategorized";
+      const categoryKey = categoryId ?? "uncategorized";
+      const categoryBucket = bucket.categories.get(categoryKey) ?? {
+        categoryId,
+        category,
+        total: 0,
+        transactionCount: 0
+      };
+      categoryBucket.total += transaction.outcome;
+      categoryBucket.transactionCount += 1;
+      bucket.categories.set(categoryKey, categoryBucket);
+
+      const payee = transaction.payee ?? transaction.merchant;
+      if (payee) {
+        const payeeBucket = bucket.payees.get(payee) ?? {
+          payee,
+          total: 0,
+          transactionCount: 0,
+          months: new Set<string>()
+        };
+        payeeBucket.total += transaction.outcome;
+        payeeBucket.transactionCount += 1;
+        payeeBucket.months.add(month);
+        bucket.payees.set(payee, payeeBucket);
+      }
+
+      bucket.total += transaction.outcome;
+      bucket.transactionCount += 1;
+      bucket.months.set(month, (bucket.months.get(month) ?? 0) + transaction.outcome);
+      bucket.largest.push({ id: transaction.id, date: transaction.date, payee, category, amount: transaction.outcome });
+      byInstrument.set(instrumentKey, bucket);
+    }
+
+    return {
+      dateFrom: input.dateFrom,
+      dateTo: input.dateTo,
+      transactionCountExamined: transactions.length,
+      expenseTransactionCount: expenseTransactions.length,
+      possiblyTruncated: transactions.length === limit,
+      evidenceBoundary:
+        "These are descriptive signals, not guaranteed savings. Ask the user about needs, commitments, and goals before recommending a cut.",
+      currencySafety: "Every instrument is independent; never add or compare raw totals across instrument ids.",
+      instruments: [...byInstrument.values()]
+        .map((bucket) => ({
+          instrument: bucket.instrument,
+          total: roundMoney(bucket.total),
+          transactionCount: bucket.transactionCount,
+          averagePerActiveMonth: roundMoney(bucket.total / Math.max(bucket.months.size, 1)),
+          monthlyTotals: [...bucket.months.entries()]
+            .map(([month, total]) => ({ month, total: roundMoney(total) }))
+            .sort((left, right) => left.month.localeCompare(right.month)),
+          categories: [...bucket.categories.values()]
+            .map((category) => ({
+              ...category,
+              total: roundMoney(category.total),
+              shareOfInstrumentSpend: bucket.total > 0 ? Math.round((category.total / bucket.total) * 10_000) / 100 : 0
+            }))
+            .sort((left, right) => right.total - left.total)
+            .slice(0, 30),
+          recurringPayeeCandidates: [...bucket.payees.values()]
+            .filter((payee) => payee.transactionCount >= 2 && payee.months.size >= 2)
+            .map((payee) => ({
+              payee: payee.payee,
+              total: roundMoney(payee.total),
+              transactionCount: payee.transactionCount,
+              activeMonths: payee.months.size
+            }))
+            .sort((left, right) => right.total - left.total)
+            .slice(0, 20),
+          largestExpenses: bucket.largest.sort((left, right) => right.amount - left.amount).slice(0, 20)
+        }))
+        .sort((left, right) => String(left.instrument).localeCompare(String(right.instrument)))
+    };
+  }
+
   async close(): Promise<void> {
     await this.backend.close();
   }
@@ -766,6 +883,10 @@ export class ZenMoneyReceiptService {
 
 function primaryCategory(tagIds: string[], byId: Map<string, ZenTag>): string | null {
   return tagIds.find((id) => byId.get(id)?.parent !== null && byId.has(id)) ?? tagIds[0] ?? null;
+}
+
+function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 function categoryNames(tagIds: string[], categories: ZenTag[]): string[] {

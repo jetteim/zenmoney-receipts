@@ -37,7 +37,8 @@ describe("MCP contract", () => {
       "zenmoney_apply_receipt_reconciliation",
       "zenmoney_preview_new_receipt",
       "zenmoney_apply_new_receipt",
-      "zenmoney_category_summary"
+      "zenmoney_category_summary",
+      "zenmoney_spending_insights"
     ]);
     const apply = result.tools.find((tool) => tool.name === "zenmoney_apply_receipt_category");
     expect(apply?.annotations).toMatchObject({

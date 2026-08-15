@@ -1,6 +1,6 @@
 {
   "name": "zenmoney-receipts",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Safely match, categorize, reconcile, split, or create ZenMoney receipt expenses and review spending groups.",
   "author": {
     "name": "Maxim Lee"
@@ -11,15 +11,14 @@
   "interface": {
     "displayName": "ZenMoney Receipts",
     "shortDescription": "Categorize receipts and review spending safely.",
-    "longDescription": "Matches receipt facts to ZenMoney transactions, previews category changes or exact receipt allocations, reconciles totals and splits, creates missing receipt expenses, verifies every write, and summarizes category usage without persisting financial data.",
+    "longDescription": "Turns receipts into one verified expense per supported category, reconciles existing expenses, reviews category granularity, and finds evidence-based saving opportunities without persisting financial data.",
     "developerName": "Maxim Lee",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],
     "defaultPrompt": [
-      "Categorize this receipt in ZenMoney.",
-      "Add this missing receipt to ZenMoney and split it by category.",
-      "Review my ZenMoney spending categories.",
-      "Find the ZenMoney transaction matching this receipt."
+      "Add this receipt to ZenMoney, one transaction per category.",
+      "Suggest more or less granular ZenMoney categories.",
+      "Review my history and suggest realistic savings."
     ]
   },
   "mcpServers": "./.mcp.json"

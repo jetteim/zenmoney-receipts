@@ -111,4 +111,34 @@ describe("category summary", () => {
       [2, 10]
     ]);
   });
+
+  it("builds bounded per-instrument evidence for saving suggestions", async () => {
+    const backend = new FakeBackend();
+    const originalCall = backend.call.bind(backend);
+    backend.call = vi.fn(async (tool: string, input: JsonObject = {}) => {
+      if (tool === "transactions_list") {
+        return [
+          { ...backend.transaction, id: "jan-food", date: "2026-01-12", outcome: 10, outcomeInstrument: 2, payee: "Cafe", tag: ["food"] },
+          { ...backend.transaction, id: "feb-food", date: "2026-02-12", outcome: 20, outcomeInstrument: 2, payee: "Cafe", tag: ["food"] },
+          { ...backend.transaction, id: "usd-food", date: "2026-02-14", outcome: 40, outcomeInstrument: 1, payee: "Cafe", tag: ["food"] }
+        ];
+      }
+      return originalCall(tool, input);
+    });
+
+    const result = await service(backend).spendingInsights({
+      dateFrom: "2026-01-01",
+      dateTo: "2026-02-28"
+    });
+
+    expect(result.instruments.map((instrument) => [instrument.instrument, instrument.total])).toEqual([
+      [1, 40],
+      [2, 30]
+    ]);
+    expect(result.instruments[1]?.averagePerActiveMonth).toBe(15);
+    expect(result.instruments[1]?.recurringPayeeCandidates).toEqual([
+      { payee: "Cafe", total: 30, transactionCount: 2, activeMonths: 2 }
+    ]);
+    expect(result.evidenceBoundary).toContain("not guaranteed savings");
+  });
 });

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { ZenMoneyReceiptService } from "./service.js";
 import type { ReceiptFacts } from "./types.js";
+import { VERSION } from "./version.js";
 
 const date = z
   .string()
@@ -56,7 +57,8 @@ export const SERVER_INSTRUCTIONS = [
   "For a mixed receipt, allocate parts only when receipt evidence supports the amounts; otherwise ask the user or use a user-approved whole-transaction category.",
   "After confirmation, apply the exact preview rather than abandoning an authorized partial or full result. Report success only when verified is true.",
   "The connector may internally compensate a failed multi-step operation, but it does not expose arbitrary deletion or category-structure mutations.",
-  "Never add totals from different outcomeInstrument values."
+  "Never add totals from different outcomeInstrument values.",
+  "For savings advice, use the spending-insights tool as evidence, keep instruments separate, distinguish facts from suggestions, and ask about the user's needs and goals before calling any category discretionary."
 ].join(" ");
 
 function success(data: unknown) {
@@ -94,7 +96,7 @@ async function handled(work: () => Promise<unknown> | unknown) {
 
 export function createServer(service: ZenMoneyReceiptService): McpServer {
   const server = new McpServer(
-    { name: "zenmoney-receipts", version: "0.2.0" },
+    { name: "zenmoney-receipts", version: VERSION },
     {
       instructions: SERVER_INSTRUCTIONS
     }
@@ -340,6 +342,22 @@ export function createServer(service: ZenMoneyReceiptService): McpServer {
       annotations: readAnnotations
     },
     async (input) => handled(() => service.categorySummary(input))
+  );
+
+  server.registerTool(
+    "zenmoney_spending_insights",
+    {
+      title: "Analyze ZenMoney spending signals",
+      description:
+        "Summarize bounded granular expense history into per-instrument monthly/category totals, recurring-payee candidates, and largest expenses for evidence-based saving suggestions. Makes no changes.",
+      inputSchema: {
+        dateFrom: date,
+        dateTo: date,
+        limit: z.number().int().min(1).max(500).default(500)
+      },
+      annotations: readAnnotations
+    },
+    async (input) => handled(() => service.spendingInsights(input))
   );
 
   return server;

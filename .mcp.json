@@ -2,7 +2,7 @@
   "mcpServers": {
     "zenmoney-receipts": {
       "title": "ZenMoney Receipts",
-      "description": "Match receipts, preview category changes, and review ZenMoney spending.",
+      "description": "Create receipt expenses by category, reconcile matches, review category granularity, and find saving opportunities.",
       "cwd": ".",
       "command": "node",
       "args": ["./dist/index.js"]

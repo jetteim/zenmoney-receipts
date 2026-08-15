@@ -31,7 +31,7 @@ description: Match a receipt image or PDF to ZenMoney, categorize an existing ex
 7. Choose exactly one preview path:
    - Existing expense, category only: `zenmoney_preview_receipt_category`.
    - Existing expenses need amount correction or a split: `zenmoney_preview_receipt_reconciliation`. Every part across every selected source must sum exactly to the receipt total.
-   - No existing match: select the intended account and call `zenmoney_preview_new_receipt`. Never use this path merely because matching is ambiguous.
+   - No existing match: select the intended account and call `zenmoney_preview_new_receipt`. For a mixed receipt, create one allocation part per supported category, normally with one category ID on each part. Never use this path merely because matching is ambiguous.
 8. Show the exact preview: affected existing IDs, old values, each proposed amount/category, created split IDs if any, the receipt-total equality, and that no write occurred.
 9. Ask the user to explicitly confirm that exact preview.
 10. Only after confirmation, call the matching apply tool with the returned token and `confirmed: true`. Do not substitute a different path or allocation.
