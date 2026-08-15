@@ -13,7 +13,7 @@ fi
 missing_paths=()
 for skill_name in categorize-zenmoney-receipts review-zenmoney-categories find-zenmoney-savings; do
   if [[ ! -d "$codex_root/skills/$skill_name" ]]; then
-    missing_paths+=(--path "skills/$skill_name")
+    missing_paths+=("skills/$skill_name")
   fi
 done
 
@@ -24,6 +24,6 @@ fi
 
 python3 "$installer" \
   --repo jetteim/zenmoney-receipts \
-  "${missing_paths[@]}"
+  --path "${missing_paths[@]}"
 
 print "ZenMoney agent skills installed. Start a new Codex session to load them."

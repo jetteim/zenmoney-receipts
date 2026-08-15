@@ -18,6 +18,7 @@ The connector supports the prioritized product workflows: create one expense per
 - Live savings-insights read: passed over a non-truncated 90-day sample; only counts were logged.
 - Codex local MCP registration: configured against this repository build on the maintainer machine.
 - Fresh ephemeral Codex session: connection status and read-only synchronization passed with the Keychain credential; no financial records were printed.
+- Proactive Codex workflows: receipt/category/savings skills are installed in the maintainer's Codex profile, validate successfully, and the installer is idempotent. New sessions can use receipt attachments or short intents instead of workflow prompts.
 
 Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md` and `docs/e2e-test-log-2026-08-15.md`. New release/live evidence belongs in `docs/evidence/` and must be sanitized.
 
