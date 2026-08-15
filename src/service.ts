@@ -14,6 +14,15 @@ import {
   type ReceiptPart,
   type ReconciliationPlan
 } from "./receipt-operations.js";
+import {
+  categoryMatchesFields,
+  proposedCategory,
+  type CategoryCreateFields,
+  type CategoryCreatePlan,
+  type CategoryMutationResult,
+  type CategoryPatch,
+  type CategoryUpdatePlan
+} from "./taxonomy-operations.js";
 import type { Backend, JsonObject, ReceiptFacts, ZenTag, ZenTransaction } from "./types.js";
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -43,6 +52,18 @@ export class ZenMoneyReceiptService {
     private readonly creationPreviews = new OperationPreviewStore<
       NewReceiptPlan,
       ReceiptOperationResult
+    >(),
+    private readonly categoryCreatePreviews = new OperationPreviewStore<
+      CategoryCreatePlan,
+      CategoryMutationResult
+    >(),
+    private readonly categoryUpdatePreviews = new OperationPreviewStore<
+      CategoryUpdatePlan,
+      CategoryMutationResult
+    >(),
+    private readonly categoryRetirePreviews = new OperationPreviewStore<
+      CategoryUpdatePlan,
+      CategoryMutationResult
     >()
   ) {}
 
@@ -73,7 +94,287 @@ export class ZenMoneyReceiptService {
 
   async listCategories(includeArchived = false) {
     await this.ensureInitialized();
-    return projectTags(await this.backend.call("tags_list", { includeArchived }));
+    const categories = projectTags(
+      await this.backend.call("tags_list", { includeArchived: true })
+    );
+    return includeArchived
+      ? categories
+      : categories.filter((category) => !category.archive && !category.retired);
+  }
+
+  private async listTaxonomyCategories(): Promise<ZenTag[]> {
+    await this.ensureInitialized();
+    const raw = await this.backend.call("tags_list", { includeArchived: true });
+    if (!Array.isArray(raw)) throw new Error("category listing did not return an array");
+    if (raw.length > 500) {
+      throw new Error("taxonomy changes are disabled when the category set exceeds 500 records");
+    }
+    const categories = projectTags(raw);
+    if (categories.length !== raw.length) {
+      throw new Error("one or more categories lack a safe stable id");
+    }
+    return categories;
+  }
+
+  async previewCategoryCreate(input: {
+    title: string;
+    parentId?: string | null | undefined;
+    showIncome: boolean;
+    showOutcome: boolean;
+    budgetIncome: boolean;
+    budgetOutcome: boolean;
+    required?: boolean | null | undefined;
+  }) {
+    await this.sync(false);
+    const categories = await this.listTaxonomyCategories();
+    const proposed: CategoryCreateFields = {
+      title: normalizeCategoryTitle(input.title),
+      parent: input.parentId ?? null,
+      showIncome: input.showIncome,
+      showOutcome: input.showOutcome,
+      budgetIncome: input.budgetIncome,
+      budgetOutcome: input.budgetOutcome,
+      required: input.required ?? null
+    };
+    validateCategoryBehavior(proposed, false);
+    const parent = validateCategoryParent(categories, null, proposed.parent);
+    ensureUniqueSiblingTitle(categories, null, proposed.parent, proposed.title);
+
+    const preview = this.categoryCreatePreviews.create({
+      proposed,
+      expectedParentChanged: parent?.changed ?? null
+    });
+    return {
+      operation: "create ZenMoney category",
+      proposed,
+      parent: parent ? { id: parent.id, title: parent.title } : null,
+      ...preview,
+      requiresConfirmation: true,
+      rollback: "If verification fails after creation, the connector will report the exact created id for manual review; it never exposes category deletion.",
+      note: "No data has been changed. ZenMoney categories support one parent level only."
+    };
+  }
+
+  async applyCategoryCreate(input: { previewToken: string; confirmed: true }) {
+    if (input.confirmed !== true) throw new Error("confirmed must be true after explicit approval");
+    const started = this.categoryCreatePreviews.begin(input.previewToken);
+    if (started.state === "applied") {
+      return { ...started.result, applied: false, alreadyApplied: true };
+    }
+    const plan = started.plan;
+
+    try {
+      await this.sync(false);
+      const categories = await this.listTaxonomyCategories();
+      const parent = validateCategoryParent(categories, null, plan.proposed.parent);
+      if (parent && parent.changed !== plan.expectedParentChanged) {
+        throw new Error("the parent category changed after preview; create a new preview");
+      }
+      ensureUniqueSiblingTitle(categories, null, plan.proposed.parent, plan.proposed.title);
+
+      const applied = requireAppliedWrite(await this.backend.call("tags_create", { ...plan.proposed }));
+      await this.sync(false);
+      const created = (await this.listTaxonomyCategories()).find((category) => category.id === applied.id);
+      if (!created || !categoryMatchesFields(created, plan.proposed)) {
+        throw new Error(`ZenMoney did not confirm the created category ${applied.id}`);
+      }
+
+      const result: CategoryMutationResult = {
+        applied: true,
+        alreadyApplied: false,
+        verified: true,
+        operation: "create",
+        category: created
+      };
+      this.categoryCreatePreviews.markApplied(input.previewToken, result);
+      return result;
+    } catch (error) {
+      this.categoryCreatePreviews.reset(input.previewToken);
+      throw error;
+    }
+  }
+
+  async previewCategoryUpdate(input: {
+    categoryId: string;
+    title?: string | undefined;
+    parentId?: string | null | undefined;
+    showIncome?: boolean | undefined;
+    showOutcome?: boolean | undefined;
+    budgetIncome?: boolean | undefined;
+    budgetOutcome?: boolean | undefined;
+    required?: boolean | null | undefined;
+  }) {
+    await this.sync(false);
+    const categories = await this.listTaxonomyCategories();
+    const category = requireCategory(categories, input.categoryId);
+    const expectedChanged = requireCategoryChanged(category);
+    const patch: CategoryPatch = {};
+    if (input.title !== undefined) patch.title = normalizeCategoryTitle(input.title);
+    if (Object.prototype.hasOwnProperty.call(input, "parentId")) patch.parent = input.parentId ?? null;
+    if (input.showIncome !== undefined) patch.showIncome = input.showIncome;
+    if (input.showOutcome !== undefined) patch.showOutcome = input.showOutcome;
+    if (input.budgetIncome !== undefined) patch.budgetIncome = input.budgetIncome;
+    if (input.budgetOutcome !== undefined) patch.budgetOutcome = input.budgetOutcome;
+    if (Object.prototype.hasOwnProperty.call(input, "required")) patch.required = input.required ?? null;
+    if (Object.keys(patch).length === 0) throw new Error("at least one category field must be changed");
+
+    const proposed = proposedCategory(category, patch);
+    if (proposed.retired && !category.retired) {
+      throw new Error("use the category retirement preview to disable a category everywhere");
+    }
+    validateCategoryBehavior(proposed, category.retired);
+    validateCategoryParent(categories, category.id, proposed.parent);
+    if (proposed.parent !== category.parent && proposed.parent !== null) {
+      const children = categories.filter((candidate) => candidate.parent === category.id);
+      if (children.length > 0) {
+        throw new Error("a category with children cannot become a child category");
+      }
+    }
+    ensureUniqueSiblingTitle(categories, category.id, proposed.parent, proposed.title);
+    if (categoryMatchesFields(category, patch)) throw new Error("the requested category update is a no-op");
+
+    const preview = this.categoryUpdatePreviews.create({
+      categoryId: category.id,
+      expectedChanged,
+      before: category,
+      patch
+    });
+    return {
+      operation: "update ZenMoney category",
+      before: category,
+      proposed,
+      exactPatch: patch,
+      ...preview,
+      requiresConfirmation: true,
+      note: "No data has been changed. Existing transaction references keep the same category id."
+    };
+  }
+
+  async applyCategoryUpdate(input: { previewToken: string; confirmed: true }) {
+    return this.applyCategoryUpdatePlan(
+      this.categoryUpdatePreviews,
+      input,
+      "update"
+    );
+  }
+
+  async previewCategoryRetirement(input: { categoryId: string }) {
+    await this.sync(false);
+    const categories = await this.listTaxonomyCategories();
+    const category = requireCategory(categories, input.categoryId);
+    const children = categories.filter((candidate) => candidate.parent === category.id && !candidate.retired);
+    if (children.length > 0) {
+      throw new Error("retire or move active child categories before retiring their parent");
+    }
+    const expectedChanged = requireCategoryChanged(category);
+    const patch: CategoryPatch = {
+      showIncome: false,
+      showOutcome: false,
+      budgetIncome: false,
+      budgetOutcome: false
+    };
+    const preview = this.categoryRetirePreviews.create({
+      categoryId: category.id,
+      expectedChanged,
+      before: category,
+      patch
+    });
+    return {
+      operation: "retire ZenMoney category",
+      before: category,
+      proposed: proposedCategory(category, patch),
+      exactPatch: patch,
+      historicalReferences: "preserved",
+      ...preview,
+      requiresConfirmation: true,
+      note: category.retired
+        ? "No data has been changed. The category is already retired; applying this preview is idempotent."
+        : "No data has been changed. Retirement disables income, expense, and budget selection but does not delete or recategorize history."
+    };
+  }
+
+  async applyCategoryRetirement(input: { previewToken: string; confirmed: true }) {
+    return this.applyCategoryUpdatePlan(
+      this.categoryRetirePreviews,
+      input,
+      "retire"
+    );
+  }
+
+  private async applyCategoryUpdatePlan(
+    store: OperationPreviewStore<CategoryUpdatePlan, CategoryMutationResult>,
+    input: { previewToken: string; confirmed: true },
+    operation: "update" | "retire"
+  ) {
+    if (input.confirmed !== true) throw new Error("confirmed must be true after explicit approval");
+    const started = store.begin(input.previewToken);
+    if (started.state === "applied") {
+      return { ...started.result, applied: false, alreadyApplied: true };
+    }
+    const plan = started.plan;
+
+    try {
+      await this.sync(false);
+      const categories = await this.listTaxonomyCategories();
+      const current = requireCategory(categories, plan.categoryId);
+      if (categoryMatchesFields(current, plan.patch)) {
+        const result: CategoryMutationResult = {
+          applied: false,
+          alreadyApplied: true,
+          verified: true,
+          operation,
+          category: current
+        };
+        store.markApplied(input.previewToken, result);
+        return result;
+      }
+      if (current.changed !== plan.expectedChanged) {
+        throw new Error("the category changed after preview; review it and create a new preview");
+      }
+
+      const proposed = proposedCategory(current, plan.patch);
+      validateCategoryBehavior(proposed, operation === "retire" || current.retired);
+      validateCategoryParent(categories, current.id, proposed.parent);
+      if (operation === "retire") {
+        const activeChildren = categories.filter(
+          (candidate) => candidate.parent === current.id && !candidate.retired
+        );
+        if (activeChildren.length > 0) {
+          throw new Error("an active child category was added after preview; create a new plan");
+        }
+      }
+      if (proposed.parent !== current.parent && proposed.parent !== null) {
+        const children = categories.filter((candidate) => candidate.parent === current.id);
+        if (children.length > 0) throw new Error("a category with children cannot become a child category");
+      }
+      ensureUniqueSiblingTitle(categories, current.id, proposed.parent, proposed.title);
+
+      requireAppliedWrite(
+        await this.backend.call("tags_update", {
+          id: current.id,
+          expectedChanged: plan.expectedChanged,
+          patch: plan.patch
+        })
+      );
+      await this.sync(false);
+      const updated = requireCategory(await this.listTaxonomyCategories(), current.id);
+      if (!categoryMatchesFields(updated, plan.patch)) {
+        throw new Error("ZenMoney did not confirm the requested category change");
+      }
+
+      const result: CategoryMutationResult = {
+        applied: true,
+        alreadyApplied: false,
+        verified: true,
+        operation,
+        category: updated
+      };
+      store.markApplied(input.previewToken, result);
+      return result;
+    } catch (error) {
+      store.reset(input.previewToken);
+      throw error;
+    }
   }
 
   async listTransactions(input: {
@@ -894,6 +1195,75 @@ function categoryNames(tagIds: string[], categories: ZenTag[]): string[] {
   return tagIds.map((id) => byId.get(id) ?? "Unknown category");
 }
 
+function normalizeCategoryTitle(value: string): string {
+  if (/[\u0000-\u001f\u007f]/.test(value)) {
+    throw new Error("category title contains unsupported control characters");
+  }
+  const title = value.trim();
+  if (title.length === 0 || title.length > 120) {
+    throw new Error("category title must contain 1 to 120 characters");
+  }
+  return title;
+}
+
+function requireCategory(categories: ZenTag[], categoryId: string): ZenTag {
+  const category = categories.find((candidate) => candidate.id === categoryId);
+  if (!category) throw new Error("category was not found");
+  return category;
+}
+
+function requireCategoryChanged(category: ZenTag): number {
+  if (category.changed === null) {
+    throw new Error("category has no concurrency version and cannot be changed safely");
+  }
+  return category.changed;
+}
+
+function validateCategoryBehavior(
+  fields: Pick<
+    CategoryCreateFields,
+    "showIncome" | "showOutcome"
+  >,
+  allowRetired: boolean
+): void {
+  if (!allowRetired && !fields.showIncome && !fields.showOutcome) {
+    throw new Error("a category must be available for income or expense; use retirement for neither");
+  }
+}
+
+function validateCategoryParent(
+  categories: ZenTag[],
+  categoryId: string | null,
+  parentId: string | null
+): ZenTag | null {
+  if (parentId === null) return null;
+  if (parentId === categoryId) throw new Error("a category cannot be its own parent");
+  const parent = requireCategory(categories, parentId);
+  if (parent.retired) throw new Error("a retired category cannot be selected as a parent");
+  if (parent.parent !== null) {
+    throw new Error("ZenMoney supports one category parent level; select a top-level parent");
+  }
+  return parent;
+}
+
+function ensureUniqueSiblingTitle(
+  categories: ZenTag[],
+  categoryId: string | null,
+  parentId: string | null,
+  title: string
+): void {
+  const folded = title.normalize("NFKC").toLowerCase();
+  const duplicate = categories.find(
+    (candidate) =>
+      candidate.id !== categoryId &&
+      candidate.parent === parentId &&
+      candidate.title.normalize("NFKC").toLowerCase() === folded
+  );
+  if (duplicate) {
+    throw new Error("a sibling category with the same normalized title already exists");
+  }
+}
+
 function validateMoney(value: number, label: string): void {
   if (!Number.isFinite(value) || value <= 0 || value > 1_000_000_000) {
     throw new Error(`${label} must be a positive finite amount`);
@@ -947,7 +1317,7 @@ function requireAppliedWrite(value: unknown): { id: string; changed: number | nu
     throw new Error(message);
   }
   if (typeof result.id !== "string" || result.id.length === 0) {
-    throw new Error("ZenMoney write response is missing the transaction id");
+    throw new Error("ZenMoney write response is missing the entity id");
   }
   const changed =
     typeof result.snapshotChanged === "number"

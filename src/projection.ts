@@ -65,11 +65,22 @@ export function projectTags(value: unknown): ZenTag[] {
     const record = asRecord(item);
     const id = nullableId(record.id);
     if (!id) return [];
+    const hasVisibility =
+      typeof record.showIncome === "boolean" || typeof record.showOutcome === "boolean";
+    const showIncome = record.showIncome === true;
+    const showOutcome = hasVisibility ? record.showOutcome === true : true;
     return [
       {
         id,
+        changed: nullableNumber(record.changed),
         title: safeText(record.title, 120) ?? "Untitled category",
         parent: nullableId(record.parent),
+        showIncome,
+        showOutcome,
+        budgetIncome: record.budgetIncome === true,
+        budgetOutcome: record.budgetOutcome === true,
+        required: typeof record.required === "boolean" ? record.required : null,
+        retired: !showIncome && !showOutcome,
         archive: record.archive === true
       }
     ];

@@ -15,8 +15,15 @@ export interface ZenAccount {
 
 export interface ZenTag {
   id: string;
+  changed: number | null;
   title: string;
   parent: string | null;
+  showIncome: boolean;
+  showOutcome: boolean;
+  budgetIncome: boolean;
+  budgetOutcome: boolean;
+  required: boolean | null;
+  retired: boolean;
   archive: boolean;
 }
 

@@ -2,7 +2,7 @@
 
 Private, local-first receipt categorization for ZenMoney through MCP. ChatGPT, Codex, Claude Code, or another MCP host reads the receipt image/PDF; this server receives structured receipt facts, finds or creates the expense, previews the exact mutation, waits for confirmation, applies it, and verifies the result.
 
-The source is shareable, but each current installation is private to its owner. Version 0.3.1 has no public GPT, hosted multi-user connector, or shared financial-data service; a separately secured hosted/public path is planned under roadmap item `F-014`.
+The source is shareable, but each current installation is private to its owner. Version 0.4.0 has no public GPT, hosted multi-user connector, or shared financial-data service; a separately secured hosted/public path is planned under roadmap item `F-014`.
 
 ## Start here
 
@@ -34,9 +34,10 @@ See the [getting-started tutorial](docs/getting-started.md), [everyday Codex usa
 - Create categorized expenses when a receipt has no existing match.
 - Re-sync and verify every write; repeated applies are idempotent within the server process.
 - Review category usage without combining different ZenMoney instrument IDs.
-- Review category granularity and analyze monthly/category/payee evidence for realistic saving opportunities, read-only.
+- Review category granularity and analyze monthly/category/payee evidence for realistic saving opportunities.
+- Preview and confirm exact category creation, rename, one-level reparenting, behavior changes, restoration, or retirement.
 
-The MCP exposes no generic update/delete tool and no category-structure mutation. Ambiguous matches and unsupported allocations fail closed. Receipt bytes stay with the host model and are neither uploaded nor stored by this server.
+The MCP exposes no generic update/delete tool. Category retirement disables selection while preserving history; it is not deletion or bulk transaction migration. Ambiguous matches and unsupported allocations fail closed. Receipt bytes stay with the host model and are neither uploaded nor stored by this server.
 
 ## Typical receipt prompt
 
@@ -50,13 +51,21 @@ For a category review:
 
 > Review my categories.
 
+To implement a reviewed plan:
+
+> Apply the category plan safely.
+
+The assistant will show exact create/update/retirement previews and wait for confirmation. It cannot hard-delete a category or bulk-migrate historical transactions.
+
+Visible receipt line items can also support an optional, more-granular category suggestion. The assistant uses only receipts available in the current session; version 0.4.0 does not persist receipt artifacts or cross-session receipt evidence. Opt-in, inspectable local evidence memory is tracked as roadmap item `F-017`.
+
 For saving suggestions:
 
 > Help me save money.
 
 ## Project status
 
-Version 0.3.1 is the production-hardened private single-user baseline: proactive short-intent workflows, locked dependencies, CI, repository validation, machine-readable diagnostics, secure credential handoff, bounded write tools, preview/confirmation, rollback attempts, read-only spending insights, and live read/write E2E evidence. Known operational limits—including process-local preview state and manual ZenMoney token lifecycle—are tracked in [project status](docs/project/STATUS.md) and the [roadmap](docs/project/ROADMAP.md).
+Version 0.4.0 is the private single-user baseline with proactive short-intent workflows, bounded receipt and taxonomy writes, locked dependencies, CI, repository validation, machine-readable diagnostics, secure credential handoff, preview/confirmation, rollback attempts, read-only spending insights, and live receipt E2E evidence. Known operational limits—including process-local preview state, untested live taxonomy writes, and manual ZenMoney token lifecycle—are tracked in [project status](docs/project/STATUS.md) and the [roadmap](docs/project/ROADMAP.md).
 
 The latest sanitized E2E evidence is in [docs/e2e-test-log-2026-08-15.md](docs/e2e-test-log-2026-08-15.md). Live write tests are opt-in and must never be run without explicit authorization.
 

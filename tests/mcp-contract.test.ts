@@ -27,6 +27,12 @@ describe("MCP contract", () => {
       "zenmoney_sync",
       "zenmoney_list_accounts",
       "zenmoney_list_categories",
+      "zenmoney_preview_category_create",
+      "zenmoney_apply_category_create",
+      "zenmoney_preview_category_update",
+      "zenmoney_apply_category_update",
+      "zenmoney_preview_category_retirement",
+      "zenmoney_apply_category_retirement",
       "zenmoney_list_transactions",
       "zenmoney_get_transaction",
       "zenmoney_suggest_categories",
@@ -58,6 +64,26 @@ describe("MCP contract", () => {
       destructiveHint: true,
       idempotentHint: true
     });
+    const taxonomyCreate = result.tools.find(
+      (tool) => tool.name === "zenmoney_apply_category_create"
+    );
+    expect(taxonomyCreate?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false
+    });
+    const taxonomyUpdate = result.tools.find(
+      (tool) => tool.name === "zenmoney_apply_category_update"
+    );
+    expect(taxonomyUpdate?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true
+    });
+    expect(SERVER_INSTRUCTIONS).toContain("preview each exact category create, update, or retirement");
+    expect(SERVER_INSTRUCTIONS).toContain("never exposes arbitrary deletion");
+    expect(SERVER_INSTRUCTIONS).toContain("visible receipt line items as optional taxonomy evidence");
+    expect(SERVER_INSTRUCTIONS).toContain("Never delay the receipt write");
     expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("reconciliation preview/apply pair");
     expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("even with no instructions");
     expect(SERVER_INSTRUCTIONS).toContain("Never ask the user to restate this workflow");

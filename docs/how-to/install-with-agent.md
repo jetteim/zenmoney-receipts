@@ -31,6 +31,12 @@ npm run doctor:live
 
 For Codex, setup also installs the receipt, category-review, and savings workflow skills through Codex's system skill installer. Start a new Codex session afterward so short intents and receipt attachments load the proactive workflows.
 
+After pulling a newer connector version that changes those workflows, refresh only the recognized ZenMoney skill copies:
+
+```bash
+npm run skills:install -- --refresh
+```
+
 The secure prompt is intentionally the one human step. Do not send a token in chat, a command argument, an issue, or an agent tool call.
 
 ## Roll back host registration

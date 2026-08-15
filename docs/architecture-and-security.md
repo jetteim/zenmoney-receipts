@@ -21,7 +21,7 @@ The host model handles the receipt bytes. The wrapper receives only receipt fact
 
 ## Exposed mutation
 
-The wrapper enables the upstream backend's write tools internally but exposes only three receipt-scoped mutation flows:
+The wrapper enables the upstream backend's write tools internally but exposes bounded receipt and taxonomy mutation flows:
 
 ```json
 {
@@ -34,8 +34,11 @@ The wrapper enables the upstream backend's write tools internally but exposes on
 - category-only replacement on one selected expense;
 - exact reconciliation of selected existing expense amounts/categories, including connector-created split parts;
 - creation of exact categorized expense parts for a receipt with no existing match.
+- exact category creation with explicit income/expense/budget behavior;
+- allowlisted category rename, one-level reparenting, behavior change, or restoration;
+- category retirement by disabling all selection/budget flags while preserving history.
 
-The wrapper does not forward arbitrary patches. It exposes no arbitrary delete, transfer, account, merchant, payee, or category-structure mutation. Existing-expense reconciliation preserves account, date, merchant, payee, and comment. Foreign-currency expenses with original-operation amounts and pending transactions are rejected for amount changes.
+The wrapper does not forward arbitrary patches. It exposes no arbitrary delete, transfer, account, merchant, payee, or bulk history-migration mutation. Taxonomy updates are restricted to `title`, `parent`, `showIncome`, `showOutcome`, `budgetIncome`, `budgetOutcome`, and `required`. Existing-expense reconciliation preserves account, date, merchant, payee, and comment. Foreign-currency expenses with original-operation amounts and pending transactions are rejected for amount changes.
 
 The pinned backend's generic create builder omits fields required by the live ZenMoney transaction schema. The wrapper therefore uses a private create-only `/v8/diff/` path with the complete transaction shape (`viewed`, bank-ID placeholders, and QR placeholder included), immediately synchronizes the child snapshot, and verifies the generated ID. This path is not exposed as a generic MCP tool.
 
@@ -49,6 +52,8 @@ Before that call, the server:
 
 After the call, it synchronizes again and verifies each exact amount/category plus the receipt-total equality. Stale or altered previews fail closed. Repeated apply calls in the same process return the stored verified result instead of duplicating writes.
 
+Taxonomy previews additionally bind the category concurrency version, normalized title, exact parent ID, and exact allowlisted behavior patch. The apply path rechecks sibling-title uniqueness, active parent state, one-level depth, and active children before sending a write. ZenMoney's tag schema does not provide archive semantics, so retirement is intentionally reversible through an update and never presented as deletion. Hard deletion and category-wide historical retagging are excluded until `F-005` provides a durable migration journal.
+
 For a failed multi-step operation, the wrapper deletes only connector-generated part IDs and restores only source writes that were positively acknowledged. Restoration uses the acknowledged post-write concurrency version; a later concurrent edit is never overwritten. Incomplete compensation locks the preview and requires manual inspection.
 
 ## Prompt-injection boundary
@@ -61,6 +66,7 @@ Receipt text and ZenMoney merchant/payee/comment fields are untrusted. Server in
 - ZenMoney data is cached only in process memory by the child backend.
 - Account balances and unrelated raw API fields are omitted from wrapper responses.
 - Category summaries group by `outcomeInstrument`; different instrument IDs are never summed.
+- Retired categories are excluded from active receipt/category suggestion paths unless explicitly requested for taxonomy inspection.
 - Receipt matching can compare both `outcome` and `opOutcome`, but a printed currency code is not automatically mapped to a ZenMoney instrument ID.
 - Multi-step preview/idempotency state is in memory. Restarting the server invalidates unapplied tokens; it does not make their preselected IDs reusable.
 
@@ -68,6 +74,7 @@ Receipt text and ZenMoney merchant/payee/comment fields are untrusted. Server in
 
 - A valid ZenMoney token must be supplied by the user. The private connector does not yet automate refresh-token exchange.
 - ZenMoney's published documentation was last edited in 2023 and has a public drift report, so the opt-in synthetic live E2E should be rerun after backend upgrades.
+- Version 0.4.0 taxonomy writes have fixture-backed verification but no live mutation evidence; running a live create/update/retire/restore test requires fresh explicit authorization and cleanup.
 - Merchant-text matching is heuristic. Ambiguous matches require manual selection.
 - A compromised host model or local user account can access financial data available to the MCP process. The preview gate reduces accidental writes but cannot make a compromised endpoint trustworthy.
 - Secure MCP Tunnel is private transport, not public plugin distribution. It requires the local machine and tunnel client to remain available.

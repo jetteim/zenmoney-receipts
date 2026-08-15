@@ -28,4 +28,10 @@ git diff --check
 
 Update `docs/project/STATUS.md`, `ROADMAP.md`, and `TRACEABILITY.md`. Record a durable design choice in `DECISIONS.md`. Live writes require explicit authorization in the current conversation, even if an older evidence log contains authorization.
 
+If a change updates the bundled agent workflows, refresh the locally installed copies and start a new session:
+
+```bash
+npm run skills:install -- --refresh
+```
+
 Use a focused commit. Never commit `.env`, tokens, raw receipts, financial exports, or unsanitized live logs.

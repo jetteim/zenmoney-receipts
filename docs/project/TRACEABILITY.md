@@ -16,5 +16,8 @@
 | VS-05 category clarity / C-12 analysis | F-009 regrouping plans | Read-only category summary and agent recommendation contract | summary unit tests; category-review skill | Complete |
 | VS-06 savings / C-13 spending insight | F-013 saving suggestions | Per-instrument monthly/category/payee evidence; no writes | spending-insight unit test; savings skill validation | Complete |
 | VS-07 laptop-independent ChatGPT / C-14 hosted connector | F-014 / S-014A hosted/public path | New Streamable HTTP, OAuth, tenant, deployment and policy boundaries | Planned threat model, auth tests, staging discovery, publication gates | Ready |
+| VS-05 category clarity / C-15 taxonomy management | F-015 bounded taxonomy writes | Six explicit preview/apply tools; one-level hierarchy and concurrency checks; reversible retirement | `tests/taxonomy-service.test.ts`, MCP contract, v0.4.0 evidence | Complete |
+| VS-05 / C-16 category consolidation | F-016 crash-safe merge | Durable all-reference migration; no generic delete surface | Planned restart/conflict/live cleanup tests | Blocked on F-005 |
+| VS-05 / C-17 receipt-informed taxonomy memory | F-017 opt-in evidence store | New local privacy/storage boundary; bounded inspect and purge | Planned permissions, corruption, retention, and deletion tests | Next |
 
 Value streams: VS-01 receipt-to-ledger; VS-02 development continuity; VS-03 private onboarding; VS-04 dependable operation; VS-05 category clarity; VS-06 savings; VS-07 laptop-independent ChatGPT. Architecture details are in `docs/project/ARCHITECTURE.md` and `docs/architecture-and-security.md`.

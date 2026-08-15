@@ -69,7 +69,13 @@ Use a short request:
 
 > Review my categories.
 
-Without a specified period, the assistant reviews the previous 90 days. The connector analyzes category usage but does not create, rename, merge, archive, or delete categories. Recommendations are a plan, not an applied migration.
+Without a specified period, the assistant reviews the previous 90 days. Recommendations are a plan, not an applied migration.
+
+Review remains read-only by default. To implement the plan, say:
+
+> Apply the category plan safely.
+
+The assistant maps each approved change to an exact create, update, or retirement preview. Check the names, parents, and visibility/budget flags, then confirm the previews. Retirement preserves historical transaction references. ZenMoney tags do not support archive semantics, and this connector does not hard-delete categories or bulk-merge their histories.
 
 ## Find saving opportunities
 
@@ -104,9 +110,11 @@ It should not ask which tools to call, whether to synchronize, whether to list c
 | --- | --- |
 | Status, synchronization, bounded reads, matching, summaries | Read-only; no confirmation needed. |
 | Preview category/reconciliation/new receipt | Validates and returns exact plan; no write. |
+| Preview category create/update/retirement | Validates hierarchy, behavior, and concurrency; no write. |
 | Apply a preview | Requires your explicit confirmation for that preview. |
 | Generic transaction update/delete | Not exposed. |
-| Category create/rename/merge/archive/delete | Not exposed. |
+| Category create/rename/reparent/restore/retire | Preview/confirm only; post-write verification required. |
+| Category hard delete or bulk history merge | Not exposed. |
 | Live synthetic E2E | Development-only; requires explicit authorization in that conversation. |
 
 Receipt text, merchant names, payees, comments, and API data are treated as untrusted content rather than instructions. The receipt file stays with Codex; the MCP receives only structured facts and does not store the file.

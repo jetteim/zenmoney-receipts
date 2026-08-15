@@ -41,3 +41,11 @@ Reason: public source cloning is sufficient and safer than an unplanned registry
 Decision: use the user-level local Codex stdio MCP for personal finance management now. Stop pursuing the laptop-hosted ChatGPT tunnel. Plan a separately hosted connector for later ChatGPT use and possible public distribution.
 
 Consequences: the current personal workflow requires the Mac only while Codex is in use. Removing that dependency requires remote hosting; public distribution additionally requires multi-user MCP OAuth, an owned ZenMoney OAuth client, encrypted token lifecycle, tenant isolation, policies, operations, and publication review. This supersedes D-001 only where it called a public connector a permanent non-goal; no public connector exists today.
+
+## D-008 — Bounded taxonomy writes, retirement instead of archive/delete
+
+Decision: expose explicit preview/apply pairs for category creation, allowlisted update, and retirement. Preserve the D-004 prohibition on generic patch/delete tools, but supersede its blanket prohibition on category-structure writes.
+
+Reason: explicit user demand now exists, and the pinned backend provides optimistic-concurrency tag writes. ZenMoney tags support one-level parents and visibility/budget fields but no archive field. Retirement therefore sets all income/expense/budget selection flags to false while preserving IDs and historical references.
+
+Consequences: agents may rename, reparent, restore, or retire only after showing an exact preview and receiving confirmation. Hard deletion and bulk historical consolidation remain excluded until `F-005` and `F-016` cover durable migration and every reference type.

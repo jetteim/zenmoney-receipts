@@ -28,6 +28,7 @@ No repository component stores receipt files or a long-lived financial snapshot.
 - `server.ts`: bounded schemas, safety annotations, sanitized MCP responses.
 - `service.ts`: matching, validation, preview/apply orchestration, post-write verification.
 - `receipt-operations.ts`: exact reconciliation/create plans and compensating actions.
+- `taxonomy-operations.ts`: allowlisted category plans, exact comparison, and retirement-state derivation.
 - `direct-write.ts`: complete receipt-create API shape.
 - `backend.ts`: private child MCP lifecycle and concurrency-aware upstream calls.
 - `credentials.ts`: environment/Keychain credential boundary.
@@ -45,5 +46,7 @@ service → backend/ZenMoney: bounded write(s)
 service → backend/ZenMoney: re-sync and verify
 service → host: verified result, or scoped compensation/manual-review state
 ```
+
+Taxonomy mutations use the same preview/confirm sequence but call only the upstream tag create/update verbs. The service re-resolves the exact category version, sibling names, parent depth, parent activity, and child state immediately before writing. Retirement changes four visibility/budget flags and preserves category/transaction IDs; no category delete or bulk retag component exists.
 
 F-005 will add a minimal permission-restricted operation journal between apply phases so crash recovery does not rely solely on process memory.

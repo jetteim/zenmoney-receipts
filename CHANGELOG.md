@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-08-15
+
+- Add preview/confirm MCP flows to create, rename, reparent, restore, and retire ZenMoney categories.
+- Expose category visibility, budget behavior, retirement state, and concurrency versions through a sanitized projection.
+- Enforce one-level hierarchy, sibling-title uniqueness, active-parent, stale-version, and explicit-retirement safety checks.
+- Add current-session receipt line-item evidence rules for optional, durable-purpose granularity suggestions without persisting receipts.
+- Add an explicit guarded refresh path for installed ZenMoney agent skills.
+- Keep category deletion and bulk historical consolidation out of the public MCP surface pending crash-safe migration support.
+
 ## 0.3.1 — 2026-08-15
 
 - Add an everyday agentic Codex usage guide and roadmap the separately hosted/public connector track.

@@ -2,13 +2,13 @@
 
 Last updated: 2026-08-15
 
-Current version: 0.3.1
+Current version: 0.4.0
 
 Deployment target: private single-user local MCP; optional private ChatGPT Secure MCP Tunnel
 
 ## Current outcome
 
-The connector supports the prioritized product workflows: create one expense per receipt-supported category, match/correct existing expenses, recommend more or less granular category organization, and produce bounded history evidence for saving suggestions. Writes use explicit preview/confirmation and post-write verification. The repository has reproducible installation, structured diagnostics, CI/security policy, durable roadmap/handoff context, and sanitized live E2E evidence.
+The connector supports the prioritized product workflows: create one expense per receipt-supported category, match/correct existing expenses, review and safely modify category taxonomy, and produce bounded history evidence for saving suggestions. Receipt and taxonomy writes use explicit preview/confirmation, optimistic concurrency, and post-write verification. The repository has reproducible installation, structured diagnostics, CI/security policy, durable roadmap/handoff context, and sanitized live receipt E2E evidence.
 
 ## Verified baseline
 
@@ -19,8 +19,9 @@ The connector supports the prioritized product workflows: create one expense per
 - Codex local MCP registration: configured against this repository build on the maintainer machine.
 - Fresh ephemeral Codex session: connection status and read-only synchronization passed with the Keychain credential; no financial records were printed.
 - Proactive Codex workflows: receipt/category/savings skills are installed in the maintainer's Codex profile, validate successfully, and the installer is idempotent. New sessions can use receipt attachments or short intents instead of workflow prompts.
+- Taxonomy management: fixture-backed preview/apply, stale-write, hierarchy, retirement, idempotency, and MCP contract tests pass; live tag writes have not been authorized or run for v0.4.0.
 
-Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md` and `docs/e2e-test-log-2026-08-15.md`. New release/live evidence belongs in `docs/evidence/` and must be sanitized.
+Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md`, `docs/evidence/2026-08-15-v0.4.0-taxonomy-verification.md`, and `docs/e2e-test-log-2026-08-15.md`. New release/live evidence belongs in `docs/evidence/` and must be sanitized.
 
 ## External setup state
 
@@ -40,3 +41,6 @@ Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md` and `docs/e2e-test-l
 - Compensating rollback is scoped and concurrency-safe but cannot guarantee recovery after process/host failure mid-operation.
 - Private ChatGPT availability depends on the local machine, tunnel process, and OpenAI workspace policy.
 - ZenMoney's public API documentation is old and has known drift; live verification remains a release gate.
+- Category hard deletion and bulk history consolidation are not exposed; `F-016` depends on crash-safe all-reference migration.
+- Taxonomy write compatibility is not yet proven against the live account because this change did not authorize real category mutations.
+- Receipt-informed grouping uses only receipts visible in the current session. Cross-session structured evidence memory is not implemented and is tracked as opt-in `F-017`; raw receipt storage remains prohibited.

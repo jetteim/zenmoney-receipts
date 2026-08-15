@@ -6,7 +6,7 @@ description: >-
   exact preview and confirmation. Use whenever the user attaches, drops, points to, or mentions a
   receipt/invoice that appears relevant to ZenMoney, even with no text or only a minimal prompt
   such as "categorize this"; also use for requests to tag, reconcile, split, add, or find a receipt
-  transaction.
+  transaction, and to suggest more granular categories from receipt line-item evidence.
 ---
 
 # Categorize ZenMoney Receipts
@@ -35,7 +35,7 @@ description: >-
    - final charged total, excluding subtotals and cash-change figures;
    - merchant name when legible;
    - currency when legible;
-   - dominant spending purpose from the purchased items.
+   - dominant spending purpose and meaningful line-item groups, with exact subtotals only when supported by the receipt.
 2. Call `zenmoney_connection_status`. If it is not configured, stop and direct the user to the setup instructions.
 3. Call `zenmoney_sync`, then `zenmoney_list_categories` and, when account choice matters, `zenmoney_list_accounts`.
 4. Call `zenmoney_match_receipt` with the extracted facts. Do not invent missing values.
@@ -49,6 +49,17 @@ description: >-
 9. Ask the user to explicitly confirm that exact preview.
 10. Only after confirmation, call the matching apply tool with the returned token and `confirmed: true`. Do not substitute a different path or allocation.
 11. Report the verified final IDs, amounts, categories, and receipt total. If the token expired or a source changed, make a new preview instead of retrying the stale one.
+
+## Receipt-informed taxonomy
+
+After preparing the receipt plan, compare its meaningful line-item groups with the active category tree. Keep this advisory step separate so it never delays or changes the receipt transaction without approval.
+
+- Make no suggestion when the narrowest existing category already expresses the spending purpose.
+- From one receipt, suggest at most one reusable child category only when at least two line items support the same distinct purpose, the group is materially useful, and only a broad parent currently fits.
+- Across several receipts visible in the current session, a repeated distinct group is stronger evidence. State the receipt count and keep currencies/instruments separate.
+- Prefer durable purposes over merchants, brands, product names, or one-off purchases. Include a short rule explaining what future items belong in the proposed category.
+- Label the evidence boundary: receipts in the current context are not persistent history. Never claim recurrence from ZenMoney transactions alone when the claim depends on receipt line items.
+- Present the idea as optional. If the user asks to implement it, use the exact category create/update/retirement preview, show it, and wait for separate explicit confirmation.
 
 ## Mixed receipts
 

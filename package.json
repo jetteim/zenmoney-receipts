@@ -1,7 +1,7 @@
 {
   "name": "zenmoney-receipts",
-  "version": "0.3.1",
-  "description": "Receipt-safe MCP server and OpenAI plugin for ZenMoney categorization, reconciliation, and creation.",
+  "version": "0.4.0",
+  "description": "Receipt-safe MCP server and OpenAI plugin for ZenMoney receipts, taxonomy, and spending insights.",
   "type": "module",
   "private": true,
   "license": "MIT",
