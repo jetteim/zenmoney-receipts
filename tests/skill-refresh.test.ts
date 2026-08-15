@@ -49,7 +49,7 @@ describe("skill refresh", () => {
       readFileSync(installed, "utf8").replace("# Categorize ZenMoney Receipts", "# Stale Copy")
     );
 
-    execFileSync("/bin/zsh", ["scripts/install-skills.sh", "--refresh"], {
+    execFileSync("/bin/bash", ["scripts/install-skills.sh", "--refresh"], {
       cwd: process.cwd(),
       env: { ...process.env, CODEX_HOME: codexRoot },
       stdio: "pipe"
@@ -72,7 +72,7 @@ describe("skill refresh", () => {
     writeFileSync(installed, "---\nname: unrelated-skill\ndescription: fixture\n---\n");
 
     expect(() =>
-      execFileSync("/bin/zsh", ["scripts/install-skills.sh", "--refresh"], {
+      execFileSync("/bin/bash", ["scripts/install-skills.sh", "--refresh"], {
         cwd: process.cwd(),
         env: { ...process.env, CODEX_HOME: codexRoot },
         stdio: "pipe"
