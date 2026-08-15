@@ -5,6 +5,20 @@ import { fileURLToPath } from "node:url";
 import { resolveCredential } from "./credentials.js";
 import type { Backend, JsonObject } from "./types.js";
 
+export function backendEnvironment(
+  credential: string,
+  environment: NodeJS.ProcessEnv = process.env
+): Record<string, string> {
+  return {
+    PATH: environment.PATH ?? "",
+    HOME: environment.HOME ?? "",
+    LANG: environment.LANG ?? "C.UTF-8",
+    ZENMONEY_ACCESS_TOKEN: credential,
+    ZENMONEY_ENABLE_WRITE_TOOLS: "true",
+    ZENMONEY_SYNC_ON_START: "false"
+  };
+}
+
 function parseToolResult(result: unknown): unknown {
   if (typeof result !== "object" || result === null) {
     throw new Error("ZenMoney backend returned an invalid response");
@@ -53,14 +67,7 @@ export class ChildMcpBackend implements Backend {
     this.transport = new StdioClientTransport({
       command: process.execPath,
       args: [entry, "--enable-write-tools"],
-      env: {
-        PATH: process.env.PATH ?? "",
-        HOME: process.env.HOME ?? "",
-        LANG: process.env.LANG ?? "C.UTF-8",
-        ZENMONEY_TOKEN: credential.token,
-        ZENMONEY_ENABLE_WRITE_TOOLS: "true",
-        ZENMONEY_SYNC_ON_START: "false"
-      },
+      env: backendEnvironment(credential.token),
       stderr: "pipe"
     });
     await this.client.connect(this.transport);

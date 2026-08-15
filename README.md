@@ -40,6 +40,12 @@ npm run check
 
 The check runs unit/contract tests, TypeScript validation, a production build, and a real stdio MCP smoke test. `npm audit` should report zero known vulnerabilities.
 
+After storing the credential, run the explicit live read-only check. It synchronizes and counts active categories but requests no writes and prints no financial records:
+
+```bash
+npm run test:live-readonly
+```
+
 ## 2. Authorize ZenMoney
 
 This repository never includes a ZenMoney credential. Obtain one using one of these routes:
