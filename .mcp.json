@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "zenmoney-receipts": {
+      "title": "ZenMoney Receipts",
+      "description": "Match receipts, preview category changes, and review ZenMoney spending.",
+      "cwd": ".",
+      "command": "node",
+      "args": ["./dist/index.js"]
+    }
+  }
+}

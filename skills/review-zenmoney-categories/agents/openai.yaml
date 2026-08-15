@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review ZenMoney Categories"
+  short_description: "Analyze spending and improve category grouping"
+  default_prompt: "Use $review-zenmoney-categories to review my ZenMoney spending categories."

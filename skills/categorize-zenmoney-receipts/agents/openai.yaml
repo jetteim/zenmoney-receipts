@@ -1,0 +1,4 @@
+interface:
+  display_name: "Categorize ZenMoney Receipts"
+  short_description: "Match receipts and safely update categories"
+  default_prompt: "Use $categorize-zenmoney-receipts to categorize this receipt in ZenMoney."

@@ -1,0 +1,29 @@
+{
+  "name": "zenmoney-receipts",
+  "version": "0.1.0",
+  "description": "Receipt-safe MCP server and OpenAI plugin for ZenMoney.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=20.11" },
+  "bin": { "zenmoney-receipts-mcp": "dist/index.js" },
+  "files": ["dist/", "skills/", ".codex-plugin/", ".mcp.json", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "npm run typecheck && esbuild src/index.ts src/backend.ts src/backend-entry.ts --bundle --packages=external --platform=node --target=node20 --format=esm --outdir=dist --banner:js=\"#!/usr/bin/env node\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "npm run test && npm run build && npm run smoke"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@nonnname/zenmoney-mcp": "0.2.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "esbuild": "0.28.2",
+    "typescript": "5.7.2",
+    "vitest": "4.1.10"
+  }
+}
