@@ -2,7 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
 
-import { createServer } from "../src/server.js";
+import { createServer, SERVER_INSTRUCTIONS } from "../src/server.js";
 import { ZenMoneyReceiptService } from "../src/service.js";
 import type { Backend } from "../src/types.js";
 
@@ -28,9 +28,15 @@ describe("MCP contract", () => {
       "zenmoney_list_accounts",
       "zenmoney_list_categories",
       "zenmoney_list_transactions",
+      "zenmoney_get_transaction",
+      "zenmoney_suggest_categories",
       "zenmoney_match_receipt",
       "zenmoney_preview_receipt_category",
       "zenmoney_apply_receipt_category",
+      "zenmoney_preview_receipt_reconciliation",
+      "zenmoney_apply_receipt_reconciliation",
+      "zenmoney_preview_new_receipt",
+      "zenmoney_apply_new_receipt",
       "zenmoney_category_summary"
     ]);
     const apply = result.tools.find((tool) => tool.name === "zenmoney_apply_receipt_category");
@@ -43,6 +49,16 @@ describe("MCP contract", () => {
     expect(apply?.inputSchema).toMatchObject({
       required: expect.arrayContaining(["previewToken", "confirmed"])
     });
+    const reconcile = result.tools.find(
+      (tool) => tool.name === "zenmoney_apply_receipt_reconciliation"
+    );
+    expect(reconcile?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true
+    });
+    expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("reconciliation preview/apply pair");
+    expect(SERVER_INSTRUCTIONS).toContain("only after the user explicitly confirms");
 
     const status = await client.callTool({ name: "zenmoney_connection_status", arguments: {} });
     expect(status.isError).not.toBe(true);

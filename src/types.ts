@@ -36,6 +36,7 @@ export interface ZenTransaction {
   merchant: string | null;
   payee: string | null;
   comment: string | null;
+  hold: boolean;
   deleted: boolean;
 }
 

@@ -20,6 +20,7 @@ function transaction(overrides: Partial<ZenTransaction> = {}): ZenTransaction {
     merchant: null,
     payee: "Mercado Central Lisboa",
     comment: null,
+    hold: false,
     deleted: false,
     ...overrides
   };

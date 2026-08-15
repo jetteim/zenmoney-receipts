@@ -1,14 +1,16 @@
 # ZenMoney Receipts
 
-A local-first MCP server and OpenAI plugin package for matching receipt photos/PDFs to existing ZenMoney expenses, previewing category-only changes, and reviewing category usage.
+A local-first MCP server and OpenAI plugin package for matching receipt photos/PDFs to ZenMoney, categorizing existing expenses, reconciling totals and splits, creating missing receipt expenses, and reviewing category usage.
 
-Status: the private single-user path is implemented and tested. A valid ZenMoney access token and, for ChatGPT, OpenAI Secure MCP Tunnel access are still required. No live ZenMoney write has been performed by the automated test suite.
+Status: the private single-user path is implemented. A valid ZenMoney access token and, for ChatGPT, OpenAI Secure MCP Tunnel access are still required. The synthetic live write E2E passed on 2026-08-15, including verified cleanup; see the [sanitized test log](docs/e2e-test-log-2026-08-15.md).
 
 ## What it does
 
 - Lets ChatGPT, Codex, Claude Code, or another MCP host inspect bounded ZenMoney projections.
 - Matches extracted receipt facts to existing expenses using date, total, account, merchant text, and original operation amount when available.
-- Replaces only the selected transaction's category IDs after an exact preview and explicit confirmation.
+- Replaces selected category IDs after an exact preview and explicit confirmation.
+- Corrects an existing expense total and splits it into exact categorized parts while preserving its account, date, payee, merchant, and comment.
+- Creates one or more categorized expenses when the receipt has no existing match.
 - Re-syncs and verifies every write.
 - Summarizes category usage without combining different ZenMoney instrument IDs.
 
@@ -22,7 +24,7 @@ Receipt images and PDFs are read by the host model. This MCP server receives onl
 | Personal ChatGPT use | Enabled through OpenAI Secure MCP Tunnel; the Mac and tunnel client must remain online. |
 | Public/multi-user ChatGPT plugin | Not implemented. It needs public HTTPS, MCP OAuth 2.1, per-user ZenMoney OAuth brokering, and encrypted token storage. |
 | ZenMoney authorization | User-specific blocker. ZenMoney requires an access token; official client registration is reviewed, and its published OAuth example returns an expiring token. |
-| Receipt line items | ZenMoney categories apply to a transaction, so mixed receipts cannot be split by this connector. |
+| Receipt line items | Exact receipt-backed allocations can become separate ZenMoney expense transactions; uncertain allocations require clarification. |
 | Category restructuring | Review recommendations are supported; create/rename/merge/archive/delete category operations are intentionally not exposed. |
 | API confidence | ZenMoney's public wiki is useful but old, and an open issue reports documentation drift. Live read-only validation is required after setup. |
 
@@ -44,6 +46,12 @@ After storing the credential, run the explicit live read-only check. It synchron
 
 ```bash
 npm run test:live-readonly
+```
+
+The live write E2E is destructive by design but narrowly scoped: it creates uniquely labeled synthetic expenses worth only a few cents, tests creation/reconciliation/idempotency, deletes the exact generated IDs in `finally`, and verifies that cleanup. Run it only with explicit authorization:
+
+```bash
+ZENMONEY_LIVE_WRITE_TEST=1 npm run test:e2e-live
 ```
 
 ## 2. Authorize ZenMoney
@@ -116,7 +124,7 @@ Keep the final command running. In ChatGPT:
 
 1. Enable Developer mode in **Settings → Security and login**.
 2. Open [ChatGPT Plugins](https://chatgpt.com/plugins), select the plus button, and choose **Tunnel** as the connection.
-3. Select the tunnel or enter its `tunnel_id`, create the connection, and review the nine discovered tools.
+3. Select the tunnel or enter its `tunnel_id`, create the connection, and review the 15 discovered tools.
 4. Start a new chat, enable the connection from the tools menu, attach a receipt, and use the prompt above.
 
 Developer-mode and tunnel availability depend on account/workspace policy. A public deployment must follow OpenAI's [MCP OAuth 2.1 requirements](https://developers.openai.com/plugins/build/auth) instead of embedding a ZenMoney token or exposing this stdio process.
@@ -125,11 +133,12 @@ Developer-mode and tunnel availability depend on account/workspace policy. A pub
 
 1. The host extracts purchase date, final charged total, merchant, currency, and dominant purpose.
 2. The MCP server syncs and ranks existing ZenMoney expenses.
-3. If matching is ambiguous, the host asks you to choose; no write tool is available at this stage.
-4. The server validates existing categories and returns before/after data plus a signed ten-minute preview token.
-5. After your explicit confirmation, the server checks the transaction version, updates only `tag`, re-syncs, and verifies the final value.
+3. If matching is ambiguous, the host asks you to choose; it does not preview or create anything.
+4. The host chooses one flow: category-only update, existing-expense reconciliation/split, or new receipt creation when no match exists.
+5. The server validates the account, transaction versions, active categories, two-decimal amounts, and exact equality between allocated parts and the receipt total. It returns a ten-minute preview token without writing.
+6. After your explicit confirmation, the server applies only that preview, re-syncs, and verifies every amount/category plus the final total. Multi-step failures trigger scoped compensating rollback.
 
-For mixed receipts, choose a dominant category or explicitly request multiple existing tags. The connector does not split a transaction.
+For mixed receipts, provide exact line-item/subtotal allocations when available. If exact allocation is not supported by the receipt, choose a dominant category or ask for clarification.
 
 ## Troubleshooting
 
@@ -137,6 +146,7 @@ For mixed receipts, choose a dominant category or explicitly request multiple ex
 - **ZenMoney request fails after previously working:** the access token may have expired or been revoked; replace it in Keychain.
 - **No receipt match:** check the final charged total, date, account, and whether ZenMoney recorded the operation. Foreign-currency matching checks both account and original operation amounts when ZenMoney supplies both.
 - **Preview expired or transaction changed:** create a fresh preview. Do not retry the old token.
+- **Reconciliation rejects an expense with an original-operation amount:** it is likely a foreign-currency operation. Category-only updates remain available, but amount correction/splitting is blocked to avoid corrupting currency fields.
 - **ChatGPT cannot see the tunnel:** run `tunnel-client doctor`, keep `tunnel-client run` active, and verify workspace association plus Tunnels Read + Use permission.
 - **Large category review is truncated:** review smaller date ranges and keep different instrument IDs separate.
 
@@ -152,4 +162,4 @@ npm run smoke
 npm audit
 ```
 
-The implementation wraps the MIT-licensed [`@nonnname/zenmoney-mcp`](https://github.com/nonnname/zenmoney-mcp) backend and exposes a smaller receipt-specific contract with explicit MCP safety annotations.
+The implementation wraps the MIT-licensed [`@nonnname/zenmoney-mcp`](https://github.com/nonnname/zenmoney-mcp) backend and exposes a smaller receipt-specific contract with explicit MCP safety annotations. Its private create path supplies the complete live transaction shape also used by [`a-tarasoff/zenmoney-mcp`](https://github.com/a-tarasoff/zenmoney-mcp); update and delete remain concurrency-checked through the pinned backend.

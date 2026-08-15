@@ -101,6 +101,7 @@ export function projectTransactions(value: unknown): ZenTransaction[] {
         merchant: safeText(record.merchant, 120),
         payee: safeText(record.payee, 200),
         comment: safeText(record.comment, 300),
+        hold: record.hold === true,
         deleted: record.deleted === true
       }
     ];

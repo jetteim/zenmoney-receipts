@@ -7,9 +7,15 @@ const expectedTools = [
   "zenmoney_list_accounts",
   "zenmoney_list_categories",
   "zenmoney_list_transactions",
+  "zenmoney_get_transaction",
+  "zenmoney_suggest_categories",
   "zenmoney_match_receipt",
   "zenmoney_preview_receipt_category",
   "zenmoney_apply_receipt_category",
+  "zenmoney_preview_receipt_reconciliation",
+  "zenmoney_apply_receipt_reconciliation",
+  "zenmoney_preview_new_receipt",
+  "zenmoney_apply_new_receipt",
   "zenmoney_category_summary"
 ];
 

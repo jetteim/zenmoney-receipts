@@ -55,6 +55,7 @@ export class PreviewTokenManager {
       throw new Error("preview token is invalid");
     }
     if (
+      suppliedSignature.toString("base64url") !== receivedSignature ||
       expectedSignature.length !== suppliedSignature.length ||
       !timingSafeEqual(expectedSignature, suppliedSignature)
     ) {
