@@ -7,7 +7,7 @@ description: Analyze bounded ZenMoney expense history and suggest evidence-based
 
 ## Workflow
 
-1. Ask for a period and goal only when absent. Default to the last three complete months and ask about target savings, fixed commitments, and protected priorities before labeling spend discretionary.
+1. Use the requested period, or default to the previous three complete calendar months without asking.
 2. Call `zenmoney_connection_status` and `zenmoney_sync`.
 3. Call `zenmoney_spending_insights` for the period. If `possiblyTruncated` is true, split the request into smaller non-overlapping periods before drawing conclusions.
 4. Analyze each `instrument` independently. Never add or directly compare raw totals across different instrument IDs.
@@ -15,9 +15,11 @@ description: Analyze bounded ZenMoney expense history and suggest evidence-based
    - evidence: monthly/category totals, frequency, recurring-payee candidates, largest expenses, and coverage limits;
    - inference: which costs may be flexible, duplicative, negotiable, or unusually high;
    - user decision: what is essential, cancellable, or worth the tradeoff.
-6. Rank no more than five opportunities. For each, state the evidence, a conservative savings range in that instrument, one concrete action, and the tradeoff or question that could invalidate it.
+6. Rank no more than five opportunities. For each, state the evidence, a conservative savings range in that instrument, one concrete action, and the tradeoff or assumption that could invalidate it.
 7. Include quick wins, recurring-cost reviews, and habit-level options when the evidence supports them. Do not manufacture benchmarks or claim that a recurring payee is a subscription.
 8. End with a small experiment for the next month and a measurement plan. Make no ZenMoney changes.
+
+Do not begin with an intake questionnaire. Analyze first using safe read-only calls. Ask one focused question only when the user's goal, fixed commitments, or protected priorities would materially change the answer.
 
 ## Safety and quality
 

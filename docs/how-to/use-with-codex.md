@@ -16,9 +16,11 @@ This confirms that the fresh session can access the Keychain credential and ZenM
 
 Attach the photo or PDF in Codex. When using a local file rather than an attachment, give Codex its exact path and ensure the file is inside an accessible directory.
 
-Use this prompt:
+Normally, just send the attachment. If the host requires text, use:
 
-> Categorize this receipt in ZenMoney. Extract the final charged total, date, merchant, and exact category subtotals from the receipt. Synchronize and match before creating anything. If there is one clear existing expense, reconcile it. If there is no match, preview one new expense transaction per supported category. If matching or allocation is ambiguous, ask me. Show the exact account, transaction amounts, categories, and receipt-total equality, then stop for my confirmation.
+> Categorize this.
+
+The MCP server and installed receipt skill supply the full workflow automatically. The longer explicit prompt remains useful only when testing a new host that does not load server instructions or skills correctly.
 
 The expected agent flow is:
 
@@ -63,19 +65,30 @@ Foreign-currency operations carrying an original-operation amount are intentiona
 
 ## Review category granularity
 
-Use:
+Use a short request:
 
-> Review my ZenMoney categories over the last 90 days. Make no changes. Keep different instrument IDs separate. Identify categories that are too broad, unnecessarily granular, overlapping, rarely used, or inconsistently applied. Recommend a small merge/split plan and clear rules for categorizing future receipts. State the sample size and limitations.
+> Review my categories.
 
-The connector analyzes category usage but does not create, rename, merge, archive, or delete categories. Recommendations are a plan, not an applied migration.
+Without a specified period, the assistant reviews the previous 90 days. The connector analyzes category usage but does not create, rename, merge, archive, or delete categories. Recommendations are a plan, not an applied migration.
 
 ## Find saving opportunities
 
 Use:
 
-> Review my last three complete months of ZenMoney expenses and suggest realistic savings. Ask about my savings target, fixed commitments, and protected priorities before calling anything discretionary. Keep instruments separate. Show the evidence for each suggestion, a conservative range, the tradeoff, and one next-month experiment. Make no changes.
+> Help me save money.
 
-Codex should use `zenmoney_spending_insights`, split the period when the 500-transaction bound is reached, and distinguish observed totals/frequency from subjective suggestions. A repeated payee is only a candidate for review, not proof of a subscription or waste.
+Without a specified period, the assistant analyzes the previous three complete calendar months. It should use `zenmoney_spending_insights`, split the period when the 500-transaction bound is reached, and distinguish observed totals/frequency from subjective suggestions. A repeated payee is only a candidate for review, not proof of a subscription or waste.
+
+## Prompt-minimization rules
+
+The assistant should silently perform all safe intermediate work. It should prompt only for:
+
+- one focused clarification when a match is genuinely ambiguous;
+- the payment account when it cannot be inferred safely;
+- exact category amounts when receipt evidence does not support the split;
+- confirmation of the final write preview.
+
+It should not ask which tools to call, whether to synchronize, whether to list categories/accounts, what matching strategy to use, or which review period to use when the defaults apply.
 
 ## Useful read-only prompts
 

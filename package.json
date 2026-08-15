@@ -1,6 +1,6 @@
 {
   "name": "zenmoney-receipts",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Receipt-safe MCP server and OpenAI plugin for ZenMoney categorization, reconciliation, and creation.",
   "type": "module",
   "private": true,
@@ -20,6 +20,7 @@
     "doctor:live": "npm run build --silent && node dist/cli.js doctor --live",
     "setup": "node scripts/install.mjs",
     "setup:plan": "node scripts/install.mjs --dry-run --json",
+    "skills:install": "./scripts/install-skills.sh",
     "chatgpt:plan": "node scripts/private-chatgpt.mjs plan --json",
     "chatgpt:doctor": "node scripts/private-chatgpt.mjs doctor --json",
     "verify:repo": "node scripts/verify-repo.mjs",

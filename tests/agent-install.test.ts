@@ -21,7 +21,8 @@ describe("agent installation surfaces", () => {
       "dependencies",
       "verification",
       "host.codex",
-      "host.claude"
+      "host.claude",
+      "host.codex-skills"
     ]);
     expect(JSON.stringify(result)).not.toMatch(/Bearer\s|access[_-]?token.{8,}/i);
   });

@@ -76,7 +76,8 @@ function plan(host) {
     effects: [
       { id: "dependencies", action: "Run npm ci using the committed lockfile." },
       { id: "verification", action: "Run the full offline test, build, smoke, and repository validation suite." },
-      ...hosts.map((name) => ({ id: `host.${name}`, action: `Add an idempotent user-level ${name} MCP registration only if the name is unused.` }))
+      ...hosts.map((name) => ({ id: `host.${name}`, action: `Add an idempotent user-level ${name} MCP registration only if the name is unused.` })),
+      ...(hosts.includes("codex") ? [{ id: "host.codex-skills", action: "Install the three ZenMoney workflow skills with Codex's system skill installer when missing." }] : [])
     ],
     credentialAction: process.platform === "darwin"
       ? "If auth is missing, run ./scripts/auth-macos.sh in a trusted interactive terminal."
@@ -103,6 +104,10 @@ async function main() {
   run("npm", ["run", "check"], options.json);
   actions.push({ id: "verification", status: "passed" });
   if (options.host === "codex" || options.host === "all") ensureCodex(options.json, actions);
+  if (options.host === "codex" || options.host === "all") {
+    run(resolve(repoRoot, "scripts/install-skills.sh"), [], options.json);
+    actions.push({ id: "host.codex-skills", status: "installed-or-unchanged", detail: "Receipt, category-review, and savings workflows are available to new Codex sessions." });
+  }
   if (options.host === "claude" || options.host === "all") ensureClaude(options.json, actions);
 
   const result = {

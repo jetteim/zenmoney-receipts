@@ -24,7 +24,7 @@ Options:
 - `--dry-run` to make no changes
 - `--json` for a single machine-readable stdout document
 
-The real installer runs `npm ci`, `npm run check`, then adds only missing same-name registrations. A conflicting registration fails closed.
+The real installer runs `npm ci`, `npm run check`, then adds only missing same-name registrations. For Codex it also installs the three workflow skills when missing. A conflicting MCP registration fails closed.
 
 ## `node scripts/private-chatgpt.mjs`
 

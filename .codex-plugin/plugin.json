@@ -1,6 +1,6 @@
 {
   "name": "zenmoney-receipts",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Safely match, categorize, reconcile, split, or create ZenMoney receipt expenses and review spending groups.",
   "author": {
     "name": "Maxim Lee"

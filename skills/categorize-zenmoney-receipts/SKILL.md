@@ -1,6 +1,12 @@
 ---
 name: categorize-zenmoney-receipts
-description: Match a receipt image or PDF to ZenMoney, categorize an existing expense, reconcile its total or split it, or create a missing receipt expense through exact preview and confirmation. Use when the user asks to categorize, tag, reconcile, split, add, or find the ZenMoney transaction for a receipt.
+description: >-
+  Automatically handle a receipt image or PDF in ZenMoney by matching an existing expense,
+  categorizing or reconciling it, or creating one missing expense per supported category through
+  exact preview and confirmation. Use whenever the user attaches, drops, points to, or mentions a
+  receipt/invoice that appears relevant to ZenMoney, even with no text or only a minimal prompt
+  such as "categorize this"; also use for requests to tag, reconcile, split, add, or find a receipt
+  transaction.
 ---
 
 # Categorize ZenMoney Receipts
@@ -15,9 +21,16 @@ description: Match a receipt image or PDF to ZenMoney, categorize an existing ex
 - Do not change amounts for foreign-currency expenses that carry an original-operation amount.
 - Do not claim success until the apply tool reports `verified: true`.
 
+## Interaction contract
+
+- Do not ask the user to describe this workflow or repeat information visible in the receipt/ZenMoney data.
+- Perform safe status, synchronization, category/account discovery, matching, and preview calls autonomously.
+- Ask at most one focused question when a required account, transaction match, or exact allocation remains genuinely ambiguous; combine related choices.
+- The only routine pause is the explicit confirmation of the exact financial-write preview.
+
 ## Workflow
 
-1. Inspect the attached receipt using the host's normal image or PDF capability. Extract only:
+1. Immediately inspect the attached/referenced receipt using the host's normal image or PDF capability. Extract only:
    - purchase date;
    - final charged total, excluding subtotals and cash-change figures;
    - merchant name when legible;

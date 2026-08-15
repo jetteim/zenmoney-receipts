@@ -7,7 +7,7 @@ description: Review bounded ZenMoney spending summaries to identify uncategorize
 
 ## Workflow
 
-1. Ask for a review period only if the user did not specify one; otherwise use the requested dates.
+1. Use the requested period, or default to the previous 90 days without asking.
 2. Call `zenmoney_connection_status`, `zenmoney_sync`, and `zenmoney_list_categories`.
 3. Call `zenmoney_category_summary` for the period. If `possiblyTruncated` is true, split the date range into smaller periods before drawing conclusions.
 4. Analyze each ZenMoney `outcomeInstrument` independently. Never sum or compare raw totals across different instrument IDs as if they were one currency.
@@ -20,6 +20,8 @@ description: Review bounded ZenMoney spending summaries to identify uncategorize
    - low-use categories that may not justify their own group.
 6. Separate observations from recommendations. State the sample period, transaction count, truncation status, and limitations.
 7. Recommend a small, prioritized grouping plan with examples and explicit decision rules for future receipts.
+
+Do not recite the workflow or ask setup questions that the tools can answer. Ask one focused question only when ambiguity would materially change the recommendations.
 
 ## Change boundary
 

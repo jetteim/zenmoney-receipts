@@ -2,7 +2,7 @@
 
 Private, local-first receipt categorization for ZenMoney through MCP. ChatGPT, Codex, Claude Code, or another MCP host reads the receipt image/PDF; this server receives structured receipt facts, finds or creates the expense, previews the exact mutation, waits for confirmation, applies it, and verifies the result.
 
-The source is shareable, but each current installation is private to its owner. Version 0.3.0 has no public GPT, hosted multi-user connector, or shared financial-data service; a separately secured hosted/public path is planned under roadmap item `F-014`.
+The source is shareable, but each current installation is private to its owner. Version 0.3.1 has no public GPT, hosted multi-user connector, or shared financial-data service; a separately secured hosted/public path is planned under roadmap item `F-014`.
 
 ## Start here
 
@@ -17,7 +17,7 @@ node scripts/install.mjs --host codex
 npm run doctor:live
 ```
 
-The installer uses the committed lockfile, runs all offline checks, and adds an idempotent local MCP registration. It refuses to overwrite a same-named registration that points elsewhere. The auth helper accepts the credential only through a hidden terminal prompt.
+The installer uses the committed lockfile, runs all offline checks, adds an idempotent local MCP registration, and installs the proactive receipt/category/savings skills for new Codex sessions. It refuses to overwrite a same-named registration that points elsewhere. The auth helper accepts the credential only through a hidden terminal prompt.
 
 If you prefer an agent to do this, clone the repository and say:
 
@@ -40,15 +40,23 @@ The MCP exposes no generic update/delete tool and no category-structure mutation
 
 ## Typical receipt prompt
 
-> Categorize this receipt in ZenMoney. Match it first. If no match exists, preview a new expense. Show me the exact account, total, and category allocation, and wait for my confirmation before applying anything.
+Attach the receipt and send it. If the host requires text:
+
+> Categorize this.
+
+The server instructions and receipt skill automatically inspect, synchronize, match, choose existing-vs-new behavior, create one preview part per supported category, and stop only for genuine ambiguity or final write confirmation.
 
 For a category review:
 
-> Review the last 90 days of my ZenMoney spending categories. Keep currencies/instruments separate. Recommend a better grouping, but make no changes.
+> Review my categories.
+
+For saving suggestions:
+
+> Help me save money.
 
 ## Project status
 
-Version 0.3.0 is the production-hardened private single-user baseline: locked dependencies, CI, repository validation, machine-readable diagnostics, secure credential handoff, bounded write tools, preview/confirmation, rollback attempts, read-only spending insights, and live read/write E2E evidence. Known operational limits—including process-local preview state, manual ZenMoney token lifecycle, and the need to keep a private ChatGPT tunnel running—are tracked in [project status](docs/project/STATUS.md) and the [roadmap](docs/project/ROADMAP.md).
+Version 0.3.1 is the production-hardened private single-user baseline: proactive short-intent workflows, locked dependencies, CI, repository validation, machine-readable diagnostics, secure credential handoff, bounded write tools, preview/confirmation, rollback attempts, read-only spending insights, and live read/write E2E evidence. Known operational limits—including process-local preview state and manual ZenMoney token lifecycle—are tracked in [project status](docs/project/STATUS.md) and the [roadmap](docs/project/ROADMAP.md).
 
 The latest sanitized E2E evidence is in [docs/e2e-test-log-2026-08-15.md](docs/e2e-test-log-2026-08-15.md). Live write tests are opt-in and must never be run without explicit authorization.
 

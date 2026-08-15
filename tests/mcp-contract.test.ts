@@ -59,6 +59,8 @@ describe("MCP contract", () => {
       idempotentHint: true
     });
     expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("reconciliation preview/apply pair");
+    expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("even with no instructions");
+    expect(SERVER_INSTRUCTIONS).toContain("Never ask the user to restate this workflow");
     expect(SERVER_INSTRUCTIONS).toContain("only after the user explicitly confirms");
 
     const status = await client.callTool({ name: "zenmoney_connection_status", arguments: {} });

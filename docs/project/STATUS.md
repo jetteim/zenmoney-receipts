@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-15
 
-Current version: 0.3.0
+Current version: 0.3.1
 
 Deployment target: private single-user local MCP; optional private ChatGPT Secure MCP Tunnel
 

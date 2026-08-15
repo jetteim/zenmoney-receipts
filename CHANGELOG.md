@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 — 2026-08-15
+
+- Add an everyday agentic Codex usage guide and roadmap the separately hosted/public connector track.
+- Make receipt attachments and short intents automatically expand into proactive receipt, category-review, and savings workflows.
+- Install the three workflow skills during Codex setup so fresh sessions load the high-level behavior.
+
 ## 0.3.0 — 2026-08-15
 
 - Add durable agent handoff, roadmap, decisions, architecture, traceability, and release gates.
@@ -7,7 +13,6 @@
 - Add checksum-verified installer for the official OpenAI tunnel client.
 - Add CI, dependency policy, security/contribution guidance, and Diátaxis-oriented documentation.
 - Add bounded per-instrument spending insights and an evidence-based savings-review skill.
-- Add an everyday agentic Codex usage guide and roadmap the separately hosted/public connector track.
 
 ## 0.2.0 — 2026-08-15
 
