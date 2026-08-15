@@ -73,8 +73,8 @@ Receipt text and ZenMoney merchant/payee/comment fields are untrusted. Server in
 - Secure MCP Tunnel is private transport, not public plugin distribution. It requires the local machine and tunnel client to remain available.
 - Multi-step operation receipts and apply-result replay are process-local. A host crash can therefore require manual inspection even though ordinary failures attempt scoped, concurrency-safe compensation. `F-005` tracks persistent crash recovery.
 
-## Deliberate non-goal: public connector
+## Separate future product: hosted/public connector
 
-This repository will not host a multi-user service or publish a public GPT/connector. Source may be cloned publicly, but each user runs a private local instance with their own credentials. A future public service would be a different product and threat model, requiring explicit roadmap approval rather than an incremental deployment change. OpenAI's [Secure MCP Tunnel documentation](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) explicitly distinguishes private tunnel use from public plugin submission.
+No public GPT/connector exists today. `F-014` now tracks a separately hosted product that removes the laptop dependency and may later be publicly distributed. It is not an incremental exposure of this stdio process: it requires Streamable HTTP, MCP OAuth 2.1, per-user ZenMoney authorization/refresh storage, tenant isolation, deletion/revocation, privacy and support policies, abuse controls, observability, incident response, and publication review. A remote connector can remain private during staging; hosting and public discoverability are separate decisions. OpenAI's [Secure MCP Tunnel documentation](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) distinguishes private tunnel use from public plugin submission.
 
 See `docs/project/ARCHITECTURE.md` for the C4 views and `docs/project/ROADMAP.md` for the reliability backlog.

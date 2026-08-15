@@ -17,18 +17,20 @@ The connector supports the prioritized product workflows: create one expense per
 - Opt-in synthetic write E2E: passed 4/4 on the final v0.3.0 build on 2026-08-15; all exact generated IDs were deleted and cleanup verified.
 - Live savings-insights read: passed over a non-truncated 90-day sample; only counts were logged.
 - Codex local MCP registration: configured against this repository build on the maintainer machine.
+- Fresh ephemeral Codex session: connection status and read-only synchronization passed with the Keychain credential; no financial records were printed.
 
 Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md` and `docs/e2e-test-log-2026-08-15.md`. New release/live evidence belongs in `docs/evidence/` and must be sanitized.
 
 ## External setup state
 
 - ZenMoney credential: configured on the maintainer machine; never stored in the repository.
-- Private ChatGPT: official `tunnel-client` v0.0.11 is checksum-verified and installed on the maintainer machine. An organization-issued runtime key/tunnel ID, workspace association, tunnel doctor, and final ChatGPT UI connection remain external prerequisites. Do not mark ChatGPT installed until the tunnel doctor and UI tool discovery both pass.
+- Personal runtime choice: local Codex stdio MCP. The attempted local ChatGPT tunnel runtime/profile was stopped and removed after a malformed runtime key; the remote tunnel remains account-side until manually deleted.
+- Hosted ChatGPT connector: requested as a future separately deployed/public product; it is not implemented or installed. See `F-014` in the roadmap.
 - GitHub publishing: source is intended to be publicly cloneable; financial connections remain private per installation.
 
 ## Next actionable item
 
-`F-005 / S-005A` — persist operation receipts/idempotency state so a process restart cannot erase evidence of a partially completed multi-step financial write. See `ROADMAP.md`.
+`F-014 / S-014A` — design the hosted connector threat model, authentication sequence, deployment/provider decision, cost envelope, and staging/publication plan. No real user credentials are handled in this slice. See `ROADMAP.md`.
 
 ## Known limits
 

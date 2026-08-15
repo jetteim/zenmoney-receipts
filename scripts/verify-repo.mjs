@@ -11,6 +11,7 @@ const required = [
   "CONTRIBUTING.md",
   "docs/getting-started.md",
   "docs/how-to/install-with-agent.md",
+  "docs/how-to/use-with-codex.md",
   "docs/how-to/private-chatgpt.md",
   "docs/reference/cli.md",
   "docs/reference/mcp-tools.md",

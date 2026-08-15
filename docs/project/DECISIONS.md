@@ -35,3 +35,9 @@ Consequences: “proceed” is deterministic across ephemeral sessions, and each
 Decision: version 0.3.0 is installed from a clone; `package.json.private` stays true until supply-chain ownership, release signing/provenance, and registry naming are explicitly decided.
 
 Reason: public source cloning is sufficient and safer than an unplanned registry release.
+
+## D-007 — Local Codex now; hosted ChatGPT as a separate product track
+
+Decision: use the user-level local Codex stdio MCP for personal finance management now. Stop pursuing the laptop-hosted ChatGPT tunnel. Plan a separately hosted connector for later ChatGPT use and possible public distribution.
+
+Consequences: the current personal workflow requires the Mac only while Codex is in use. Removing that dependency requires remote hosting; public distribution additionally requires multi-user MCP OAuth, an owned ZenMoney OAuth client, encrypted token lifecycle, tenant isolation, policies, operations, and publication review. This supersedes D-001 only where it called a public connector a permanent non-goal; no public connector exists today.

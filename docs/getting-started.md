@@ -50,6 +50,8 @@ Restart the MCP host. Ask it:
 
 Once that passes, attach a receipt and use the prompt from the README. Every mutation must first return an exact preview and wait for your explicit confirmation.
 
+Continue with [Use ZenMoney Receipts with Codex](how-to/use-with-codex.md) for receipt creation, category reviews, saving suggestions, ephemeral sessions, and troubleshooting.
+
 ## 5. Optional private ChatGPT connection
 
 Continue with [Connect private ChatGPT](how-to/private-chatgpt.md). ChatGPT does not read the local Codex MCP registration; it needs its own private tunnel connection.

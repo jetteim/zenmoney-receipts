@@ -15,5 +15,6 @@
 | VS-01 / C-11 extraction quality | F-008 evaluation pack | Host-neutral receipt-facts contract | Planned synthetic eval corpus | Next |
 | VS-05 category clarity / C-12 analysis | F-009 regrouping plans | Read-only category summary and agent recommendation contract | summary unit tests; category-review skill | Complete |
 | VS-06 savings / C-13 spending insight | F-013 saving suggestions | Per-instrument monthly/category/payee evidence; no writes | spending-insight unit test; savings skill validation | Complete |
+| VS-07 laptop-independent ChatGPT / C-14 hosted connector | F-014 / S-014A hosted/public path | New Streamable HTTP, OAuth, tenant, deployment and policy boundaries | Planned threat model, auth tests, staging discovery, publication gates | Ready |
 
-Value streams: VS-01 receipt-to-ledger; VS-02 development continuity; VS-03 private onboarding; VS-04 dependable operation; VS-05 category clarity; VS-06 savings. Architecture details are in `docs/project/ARCHITECTURE.md` and `docs/architecture-and-security.md`.
+Value streams: VS-01 receipt-to-ledger; VS-02 development continuity; VS-03 private onboarding; VS-04 dependable operation; VS-05 category clarity; VS-06 savings; VS-07 laptop-independent ChatGPT. Architecture details are in `docs/project/ARCHITECTURE.md` and `docs/architecture-and-security.md`.

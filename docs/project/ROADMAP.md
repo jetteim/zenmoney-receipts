@@ -10,6 +10,15 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 
 ## Ready / Now
 
+### F-014 — Hosted ChatGPT connector and publication path
+
+- Outcome: ChatGPT can use the receipt/category/savings workflows without the user's laptop, with a separately deployed connector suitable for eventual public distribution.
+- Acceptance evidence: hosted Streamable HTTP MCP; MCP OAuth 2.1 metadata/PKCE/token validation; owned ZenMoney OAuth client with encrypted per-user refresh storage; tenant-isolation and deletion tests; privacy/support policies; staging ChatGPT tool discovery; production publication checklist.
+- Production dependencies: ZenMoney application registration/approval, hosting/provider decision and budget, public privacy/terms/support contacts, F-005 crash-safe operations, and F-006 privacy-safe observability. `S-014A` is unblocked and must resolve these choices before implementation begins.
+- Risks: custody of financial credentials/data, multi-tenant isolation, API drift, billing, abuse/rate limits, incident response, and materially larger compliance scope.
+- First slice: `S-014A` write the hosted threat model, auth sequence, C4 deployment view, provider/cost decision, and staging plan without handling real user credentials.
+- Boundary: a remote private connector can remove the laptop dependency before public publication; distribution visibility and hosting are separate decisions.
+
 ### F-005 — Crash-safe financial operations
 
 - Outcome: after a server restart or host crash, an authorized reconciliation/create operation can be classified as not started, completed, compensated, or requiring manual review without duplicating writes.

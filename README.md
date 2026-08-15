@@ -2,7 +2,7 @@
 
 Private, local-first receipt categorization for ZenMoney through MCP. ChatGPT, Codex, Claude Code, or another MCP host reads the receipt image/PDF; this server receives structured receipt facts, finds or creates the expense, previews the exact mutation, waits for confirmation, applies it, and verifies the result.
 
-The source is shareable, but each installation and ChatGPT connection remains private to its owner. There is no public GPT, hosted multi-user connector, or shared financial-data service.
+The source is shareable, but each current installation is private to its owner. Version 0.3.0 has no public GPT, hosted multi-user connector, or shared financial-data service; a separately secured hosted/public path is planned under roadmap item `F-014`.
 
 ## Start here
 
@@ -23,7 +23,7 @@ If you prefer an agent to do this, clone the repository and say:
 
 > Read AGENTS.md and install this project for Codex. Show the dry-run first, never expose credentials, pause only for my secure ZenMoney authentication, then run the read-only live doctor.
 
-See the [getting-started tutorial](docs/getting-started.md), [agent installation guide](docs/how-to/install-with-agent.md), or [private ChatGPT guide](docs/how-to/private-chatgpt.md).
+See the [getting-started tutorial](docs/getting-started.md), [everyday Codex usage guide](docs/how-to/use-with-codex.md), or [agent installation guide](docs/how-to/install-with-agent.md).
 
 ## Capabilities
 
@@ -55,7 +55,7 @@ The latest sanitized E2E evidence is in [docs/e2e-test-log-2026-08-15.md](docs/e
 ## Documentation
 
 - Tutorial: [getting started](docs/getting-started.md)
-- How-to: [install with an agent](docs/how-to/install-with-agent.md), [connect private ChatGPT](docs/how-to/private-chatgpt.md), [continue development](docs/how-to/develop.md)
+- How-to: [use with Codex](docs/how-to/use-with-codex.md), [install with an agent](docs/how-to/install-with-agent.md), [connect private ChatGPT](docs/how-to/private-chatgpt.md), [continue development](docs/how-to/develop.md)
 - Reference: [CLI](docs/reference/cli.md), [MCP tools](docs/reference/mcp-tools.md)
 - Explanation: [architecture and security](docs/architecture-and-security.md)
 - Durable project context: [status](docs/project/STATUS.md), [roadmap](docs/project/ROADMAP.md), [decisions](docs/project/DECISIONS.md), [traceability](docs/project/TRACEABILITY.md)

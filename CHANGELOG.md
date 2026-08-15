@@ -7,6 +7,7 @@
 - Add checksum-verified installer for the official OpenAI tunnel client.
 - Add CI, dependency policy, security/contribution guidance, and Diátaxis-oriented documentation.
 - Add bounded per-instrument spending insights and an evidence-based savings-review skill.
+- Add an everyday agentic Codex usage guide and roadmap the separately hosted/public connector track.
 
 ## 0.2.0 — 2026-08-15
 
