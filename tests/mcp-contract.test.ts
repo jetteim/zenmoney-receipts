@@ -80,6 +80,14 @@ describe("MCP contract", () => {
       destructiveHint: true,
       idempotentHint: true
     });
+    const matchReceipt = result.tools.find((tool) => tool.name === "zenmoney_match_receipt");
+    expect(matchReceipt?.inputSchema.required).not.toContain("date");
+    const previewNewReceipt = result.tools.find(
+      (tool) => tool.name === "zenmoney_preview_new_receipt"
+    );
+    expect(previewNewReceipt?.inputSchema.required).not.toContain("date");
+    expect(previewNewReceipt?.inputSchema.required).not.toContain("accountId");
+    expect(previewNewReceipt?.inputSchema.properties).toHaveProperty("accountHint");
     expect(SERVER_INSTRUCTIONS).toContain("preview each exact category create, update, or retirement");
     expect(SERVER_INSTRUCTIONS).toContain("never exposes arbitrary deletion");
     expect(SERVER_INSTRUCTIONS).toContain("visible receipt line items as optional taxonomy evidence");
@@ -88,6 +96,8 @@ describe("MCP contract", () => {
     expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("even with no instructions");
     expect(SERVER_INSTRUCTIONS).toContain("Never ask the user to restate this workflow");
     expect(SERVER_INSTRUCTIONS).toContain("only after the user explicitly confirms");
+    expect(SERVER_INSTRUCTIONS).toContain("Do not ask routinely for a missing date or paying account");
+    expect(SERVER_INSTRUCTIONS).toContain("visibly mark every item in suggestedFields");
 
     const status = await client.callTool({ name: "zenmoney_connection_status", arguments: {} });
     expect(status.isError).not.toBe(true);

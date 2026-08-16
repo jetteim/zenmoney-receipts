@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ZenMoneyReceiptService } from "../src/service.js";
+import { localCalendarDate } from "../src/receipt-defaults.js";
 import type { Backend, JsonObject } from "../src/types.js";
 
 class ReceiptBackend implements Backend {
@@ -17,6 +18,7 @@ class ReceiptBackend implements Backend {
     instrument: 2,
     archive: false
   };
+  readonly accounts = [this.account];
   readonly tags = [
     { id: "food", title: "Food", parent: "daily", archive: false },
     { id: "kids", title: "Kids", parent: "family", archive: false }
@@ -52,7 +54,7 @@ class ReceiptBackend implements Backend {
       case "sync_run":
         return { initialized: true };
       case "accounts_list":
-        return [this.account];
+        return this.accounts;
       case "tags_list":
         return this.tags;
       case "transactions_list":
@@ -120,6 +122,8 @@ function writes(backend: ReceiptBackend) {
     ["transactions_update", "receipt_transactions_create", "transactions_delete"].includes(call.tool)
   );
 }
+
+afterEach(() => vi.useRealTimers());
 
 describe("receipt reconciliation", () => {
   it("previews without writes, then corrects the total, creates a split, and is idempotent", async () => {
@@ -218,6 +222,116 @@ describe("receipt reconciliation", () => {
 });
 
 describe("new receipt creation", () => {
+  it("suggests omitted fields and binds them to the confirmed create", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 16, 12, 0));
+    const backend = new ReceiptBackend();
+    backend.accounts.push({
+      id: "cash-wallet",
+      title: "Cash Wallet",
+      type: "cash",
+      instrument: 2,
+      archive: false
+    });
+    const service = new ZenMoneyReceiptService(backend);
+    const preview = await service.previewNewReceipt({
+      receiptTotal: 6,
+      accountHint: "cash",
+      payee: "Synthetic market",
+      parts: [{ amount: 6, tagIds: ["food"] }]
+    });
+
+    expect(preview).toMatchObject({
+      account: { id: "cash-wallet", title: "Cash Wallet" },
+      date: localCalendarDate(),
+      suggestedFields: [
+        {
+          field: "date",
+          suggested: true,
+          basis: "host-local-today",
+          confidence: "medium"
+        },
+        {
+          field: "accountId",
+          value: "cash-wallet",
+          label: "Cash Wallet",
+          suggested: true,
+          basis: "account-hint",
+          confidence: "high"
+        }
+      ],
+      requiresConfirmation: true
+    });
+    expect(writes(backend)).toHaveLength(0);
+
+    const applied = await service.applyNewReceipt({
+      previewToken: preview.previewToken,
+      confirmed: true
+    });
+    expect(applied).toMatchObject({ applied: true, verified: true });
+    expect(applied.transactions).toEqual([
+      expect.objectContaining({
+        date: localCalendarDate(),
+        outcomeAccount: "cash-wallet",
+        outcome: 6,
+        tag: ["food"]
+      })
+    ]);
+  });
+
+  it("uses bounded payee history when no account or payment hint is supplied", async () => {
+    const backend = new ReceiptBackend();
+    backend.accounts.push({
+      id: "account-2",
+      title: "Daily card",
+      type: "checking",
+      instrument: 2,
+      archive: false
+    });
+    backend.transactions.set("history-2", {
+      ...backend.transactions.get("source-1")!,
+      id: "history-2",
+      outcomeAccount: "account-2",
+      incomeAccount: "account-2",
+      payee: "Corner Grocer",
+      date: "2026-08-16"
+    });
+    const service = new ZenMoneyReceiptService(backend);
+    const preview = await service.previewNewReceipt({
+      receiptTotal: 6,
+      date: "2026-08-16",
+      payee: "Corner Grocer",
+      parts: [{ amount: 6, tagIds: ["food"] }]
+    });
+
+    expect(preview.account.id).toBe("account-2");
+    expect(preview.suggestedFields).toEqual([
+      expect.objectContaining({
+        field: "accountId",
+        value: "account-2",
+        basis: "payee-history",
+        suggested: true
+      })
+    ]);
+    expect(writes(backend)).toHaveLength(0);
+  });
+
+  it("rejects conflicting exact and semantic account inputs before any backend read", async () => {
+    const backend = new ReceiptBackend();
+    const service = new ZenMoneyReceiptService(backend);
+
+    await expect(
+      service.previewNewReceipt({
+        receiptTotal: 6,
+        accountId: "account-1",
+        accountHint: "cash",
+        date: "2026-08-16",
+        parts: [{ amount: 6, tagIds: ["food"] }]
+      })
+    ).rejects.toThrow("accountHint must be omitted");
+    expect(backend.calls).toHaveLength(0);
+  });
+
   it("creates exact allocated parts, verifies the total, and is idempotent", async () => {
     const backend = new ReceiptBackend();
     const service = new ZenMoneyReceiptService(backend);
@@ -234,6 +348,7 @@ describe("new receipt creation", () => {
     });
 
     expect(writes(backend)).toHaveLength(0);
+    expect(preview.suggestedFields).toEqual([]);
     const applied = await service.applyNewReceipt({
       previewToken: preview.previewToken,
       confirmed: true

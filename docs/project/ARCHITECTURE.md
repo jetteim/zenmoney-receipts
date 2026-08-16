@@ -28,6 +28,7 @@ No repository component stores receipt files or a long-lived financial snapshot.
 - `server.ts`: bounded schemas, safety annotations, sanitized MCP responses.
 - `service.ts`: matching, validation, preview/apply orchestration, post-write verification.
 - `receipt-operations.ts`: exact reconciliation/create plans and compensating actions.
+- `receipt-defaults.ts`: host-local date resolution and bounded deterministic account recommendation.
 - `taxonomy-operations.ts`: allowlisted category plans, exact comparison, and retirement-state derivation.
 - `direct-write.ts`: complete receipt-create API shape.
 - `backend.ts`: private child MCP lifecycle and concurrency-aware upstream calls.
@@ -39,7 +40,7 @@ No repository component stores receipt files or a long-lived financial snapshot.
 ```text
 Host → service: sync + select exact source/account/categories
 Host → preview tool: structured receipt plan
-service → host: before/after + signed/opaque short-lived token
+service → host: before/after + marked suggestions + signed/opaque short-lived token
 User → host: explicit confirmation
 Host → apply tool: token + confirmed=true
 service → backend/ZenMoney: bounded write(s)

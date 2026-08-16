@@ -44,7 +44,7 @@ function merchantScore(receiptMerchant: string | undefined, transaction: ZenTran
 }
 
 export function rankReceiptMatches(
-  receipt: ReceiptFacts,
+  receipt: ReceiptFacts & { date: string },
   transactions: ZenTransaction[],
   options: { dateWindowDays?: number; amountTolerance?: number } = {}
 ): MatchCandidate[] {

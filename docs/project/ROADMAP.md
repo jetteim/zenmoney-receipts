@@ -4,7 +4,7 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 
 ## Product priorities
 
-1. Receipt → recognize exact categories/amounts → create one verified transaction per category (`F-012`, complete).
+1. Receipt → recognize exact categories/amounts → create one verified transaction per category with marked date/account suggestions when needed (`F-012` and `F-018`, complete).
 2. Review existing categories → suggest more or less granular grouping, then safely implement requested structural changes (`F-009` and `F-015`, complete; bulk history merge deferred to `F-016`).
 3. Review granular history → suggest realistic savings with evidence (`F-013`, complete and read-only).
 
@@ -71,10 +71,11 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 - `F-004` CI, dependency updates, security/contribution policy, documentation structure, and repository validation baseline.
 - `F-010` receipt match/category-only flow.
 - `F-011` existing-expense reconciliation and exact split.
-- `F-012` missing-receipt creation with cleanup-tested live E2E.
+- `F-012` missing-receipt creation with cleanup-tested live E2E and a separately confirmed live single-category receipt operation on 2026-08-16.
 - `F-009` read-only category granularity review with instrument-safe grouping rules.
 - `F-013` bounded per-instrument spending insights and evidence-based savings workflow.
-- `F-015` bounded taxonomy create, rename, reparent, behavior, restore, and retirement preview/apply flows.
+- `F-015` bounded taxonomy create, rename, reparent, behavior, restore, and retirement preview/apply flows; confirmed live create/update/transaction-category evidence recorded on 2026-08-15, with retirement and restore still live-unverified.
+- `F-018` fast missing-field receipt previews: host-local-today date suggestion, bounded semantic/history account recommendation, and exact `suggestedFields` provenance labels without weakening confirmation.
 
 ## Later / Ideas
 

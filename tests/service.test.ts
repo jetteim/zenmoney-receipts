@@ -86,6 +86,34 @@ describe("receipt category write flow", () => {
   });
 });
 
+describe("receipt matching defaults", () => {
+  it("marks host-local today as a suggestion when the receipt date is missing", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 14, 12, 0));
+    try {
+      const result = await service(new FakeBackend()).matchReceipt({
+        total: 25,
+        merchant: "Market"
+      });
+
+      expect(result).toMatchObject({
+        searchDate: "2026-08-14",
+        suggestedFields: [
+          {
+            field: "date",
+            value: "2026-08-14",
+            suggested: true,
+            basis: "host-local-today"
+          }
+        ],
+        ambiguous: false
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("category summary", () => {
   it("keeps totals in different instruments separate", async () => {
     const backend = new FakeBackend();

@@ -48,7 +48,7 @@ export interface ZenTransaction {
 }
 
 export interface ReceiptFacts {
-  date: string;
+  date?: string;
   total: number;
   merchant?: string;
   currency?: string;

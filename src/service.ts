@@ -6,6 +6,11 @@ import { PreviewTokenManager } from "./preview-token.js";
 import { projectAccounts, projectTags, projectTransaction, projectTransactions } from "./projection.js";
 import { rankReceiptMatches, shiftDate } from "./receipt.js";
 import {
+  recommendReceiptAccount,
+  resolveReceiptDate,
+  validateAccountHint
+} from "./receipt-defaults.js";
+import {
   cents,
   sameAmount,
   sameTags,
@@ -438,20 +443,35 @@ export class ZenMoneyReceiptService {
     receipt: ReceiptFacts,
     options: { dateWindowDays?: number; amountTolerance?: number } = {}
   ) {
+    const receiptDate = resolveReceiptDate(receipt.date);
+    const resolvedReceipt = { ...receipt, date: receiptDate.value };
     const dateWindowDays = options.dateWindowDays ?? 3;
     const transactions = await this.listTransactions({
-      dateFrom: shiftDate(receipt.date, -dateWindowDays),
-      dateTo: shiftDate(receipt.date, dateWindowDays),
+      dateFrom: shiftDate(resolvedReceipt.date, -dateWindowDays),
+      dateTo: shiftDate(resolvedReceipt.date, dateWindowDays),
       ...(receipt.accountId ? { accountId: receipt.accountId } : {}),
       limit: 500
     });
-    const candidates = rankReceiptMatches(receipt, transactions, options);
+    const candidates = rankReceiptMatches(resolvedReceipt, transactions, options);
     const top = candidates[0];
     const runnerUp = candidates[1];
     const ambiguous = !top || top.score < 70 || (runnerUp !== undefined && top.score - runnerUp.score < 10);
     const confidence = !top ? "none" : top.score >= 85 ? "high" : top.score >= 70 ? "medium" : "low";
 
     return {
+      searchDate: resolvedReceipt.date,
+      suggestedFields: receiptDate.suggested
+        ? [
+            {
+              field: "date",
+              value: receiptDate.value,
+              suggested: true,
+              basis: receiptDate.basis,
+              confidence: receiptDate.confidence,
+              reason: receiptDate.reason
+            }
+          ]
+        : [],
       receiptCurrency: receipt.currency ?? null,
       currencyNote:
         "Matching checks both the ZenMoney account amount and its original operation amount when available; the receipt currency code is not mapped to a ZenMoney instrument id.",
@@ -626,21 +646,23 @@ export class ZenMoneyReceiptService {
 
   async previewNewReceipt(input: {
     receiptTotal: number;
-    accountId: string;
-    date: string;
+    accountId?: string | undefined;
+    accountHint?: string | undefined;
+    date?: string | undefined;
     payee?: string | undefined;
     comment?: string | undefined;
     parts: ReceiptPart[];
   }) {
     validateMoney(input.receiptTotal, "receipt total");
+    const receiptDate = resolveReceiptDate(input.date);
+    const accountHint = validateAccountHint(input.accountHint);
+    if (input.accountId && accountHint) {
+      throw new Error("accountHint must be omitted when an exact accountId is supplied");
+    }
     const [accounts, categories] = await Promise.all([
       this.listAccounts(false),
       this.listCategories(false)
     ]);
-    const account = accounts.find((candidate) => candidate.id === input.accountId);
-    if (!account || account.archive || account.instrument === null) {
-      throw new Error("the selected account is missing, archived, or has no currency instrument");
-    }
     const activeCategoryIds = new Set(
       categories.filter((category) => !category.archive).map((category) => category.id)
     );
@@ -648,12 +670,30 @@ export class ZenMoneyReceiptService {
     if (input.parts.reduce((total, part) => total + cents(part.amount), 0) !== cents(input.receiptTotal)) {
       throw new Error("new expense parts must sum exactly to the receipt total");
     }
+    let account = input.accountId
+      ? accounts.find((candidate) => candidate.id === input.accountId)
+      : undefined;
+    let accountSuggestion: ReturnType<typeof recommendReceiptAccount> | undefined;
+    if (!input.accountId) {
+      const transactions = await this.listTransactions({ limit: 500 });
+      accountSuggestion = recommendReceiptAccount({
+        accounts,
+        transactions,
+        accountHint,
+        payee: input.payee,
+        tagIds: input.parts.flatMap((part) => part.tagIds)
+      });
+      account = accountSuggestion.account;
+    }
+    if (!account || account.archive || account.instrument === null) {
+      throw new Error("the selected account is missing, archived, or has no currency instrument");
+    }
 
     const plan: NewReceiptPlan = {
       receiptTotal: input.receiptTotal,
-      accountId: input.accountId,
+      accountId: account.id,
       instrument: account.instrument,
-      date: input.date,
+      date: receiptDate.value,
       payee: input.payee?.trim() || null,
       comment: input.comment?.trim() || null,
       parts: input.parts.map((part) => ({ ...part, transactionId: randomUUID() }))
@@ -665,6 +705,33 @@ export class ZenMoneyReceiptService {
       receiptTotal: plan.receiptTotal,
       date: plan.date,
       payee: plan.payee,
+      suggestedFields: [
+        ...(receiptDate.suggested
+          ? [
+              {
+                field: "date" as const,
+                value: receiptDate.value,
+                suggested: true as const,
+                basis: receiptDate.basis,
+                confidence: receiptDate.confidence,
+                reason: receiptDate.reason
+              }
+            ]
+          : []),
+        ...(accountSuggestion
+          ? [
+              {
+                field: "accountId" as const,
+                value: accountSuggestion.account.id,
+                label: accountSuggestion.account.title,
+                suggested: true as const,
+                basis: accountSuggestion.basis,
+                confidence: accountSuggestion.confidence,
+                reason: accountSuggestion.reason
+              }
+            ]
+          : [])
+      ],
       parts: plan.parts.map((part) => ({
         transactionId: part.transactionId,
         amount: part.amount,

@@ -43,6 +43,16 @@ Re-sync and report only a verified result
 
 For a mixed receipt, line items or printed subtotals must support every category amount. If exact category subtotals are unavailable, ask Codex to use one dominant category or ask you for the allocation; it must not invent the split.
 
+### Review suggested fields
+
+An unreadable date or unspecified paying account no longer blocks the preview:
+
+- An omitted date becomes the MCP host's local current date.
+- An omitted account is ranked from a payment clue first, then bounded prior payee/category usage, recent use, or a deterministic active-account fallback.
+- Every inferred value appears in `suggestedFields` with `suggested: true`, its basis, confidence, and reason. Fields identified from the receipt or prompt are not marked.
+
+These are preview suggestions, not silent defaults. Check the visibly marked date/account together with the amounts and categories. If one is wrong, request a corrected preview; otherwise confirm the exact preview directly without answering a separate date/account question.
+
 ### Confirm the preview
 
 After checking the account, amounts, categories, and total, say:
@@ -90,9 +100,10 @@ Without a specified period, the assistant analyzes the previous three complete c
 The assistant should silently perform all safe intermediate work. It should prompt only for:
 
 - one focused clarification when a match is genuinely ambiguous;
-- the payment account when it cannot be inferred safely;
 - exact category amounts when receipt evidence does not support the split;
 - confirmation of the final write preview.
+
+When a receipt date or exact account is absent, it should proceed to a marked suggestion rather than interrupting the workflow.
 
 It should not ask which tools to call, whether to synchronize, whether to list categories/accounts, what matching strategy to use, or which review period to use when the defaults apply.
 
@@ -137,6 +148,7 @@ Development sessions use the repository as memory:
 | Token expired/revoked | Replace it using `./scripts/auth-macos.sh`, then rerun the live doctor. |
 | Preview expired or session restarted | Generate a fresh preview and review it again. |
 | Match is ambiguous | Choose a presented candidate or clarify; never force new-receipt creation. |
+| Suggested date/account is wrong | Reject the preview and name the correction; Codex must generate a new exact preview. |
 | Category/history result is truncated | Ask Codex to split the date range into smaller, non-overlapping periods. |
 | Code was updated | Run `npm run check`, then start a new Codex session so it launches the rebuilt server. |
 

@@ -17,6 +17,7 @@ description: >-
 - Never apply a category when the transaction match is ambiguous.
 - Always show the exact preview and obtain explicit user confirmation before applying it.
 - Treat confirmation as authorization for exactly the previewed transaction IDs, amounts, and categories—nothing else.
+- Treat confirmation as authorization for exactly the previewed date and account, including any marked suggestions—nothing else.
 - Never change an existing expense's account, date, merchant, payee, or transaction type.
 - Do not change amounts for foreign-currency expenses that carry an original-operation amount.
 - Do not claim success until the apply tool reports `verified: true`.
@@ -25,27 +26,29 @@ description: >-
 
 - Do not ask the user to describe this workflow or repeat information visible in the receipt/ZenMoney data.
 - Perform safe status, synchronization, category/account discovery, matching, and preview calls autonomously.
-- Ask at most one focused question when a required account, transaction match, or exact allocation remains genuinely ambiguous; combine related choices.
+- Do not ask for a missing receipt date or paying account. Let the connector recommend them in the preview and mark them as suggested.
+- Ask at most one focused question when a transaction match or exact allocation remains genuinely ambiguous; combine related choices.
 - The only routine pause is the explicit confirmation of the exact financial-write preview.
 
 ## Workflow
 
 1. Immediately inspect the attached/referenced receipt using the host's normal image or PDF capability. Extract only:
-   - purchase date;
+   - purchase date when legible; otherwise leave it absent;
    - final charged total, excluding subtotals and cash-change figures;
    - merchant name when legible;
    - currency when legible;
+   - any payment clue such as an account/card label or cash, without inventing one;
    - dominant spending purpose and meaningful line-item groups, with exact subtotals only when supported by the receipt.
 2. Call `zenmoney_connection_status`. If it is not configured, stop and direct the user to the setup instructions.
 3. Call `zenmoney_sync`, then `zenmoney_list_categories` and, when account choice matters, `zenmoney_list_accounts`.
-4. Call `zenmoney_match_receipt` with the extracted facts. Do not invent missing values.
+4. Call `zenmoney_match_receipt` with the extracted facts. Omit an unidentified date so the connector uses and marks host-local today as a search suggestion. Do not invent missing values.
 5. If `ambiguous` is true, present the bounded candidates with date, amount, account, and payee, then ask the user to select one or clarify. Do not preview or apply yet.
 6. Select the narrowest existing categories supported by the receipt. Prefer a child category over its parent. Explain each allocation briefly.
 7. Choose exactly one preview path:
    - Existing expense, category only: `zenmoney_preview_receipt_category`.
    - Existing expenses need amount correction or a split: `zenmoney_preview_receipt_reconciliation`. Every part across every selected source must sum exactly to the receipt total.
-   - No existing match: select the intended account and call `zenmoney_preview_new_receipt`. For a mixed receipt, create one allocation part per supported category, normally with one category ID on each part. Never use this path merely because matching is ambiguous.
-8. Show the exact preview: affected existing IDs, old values, each proposed amount/category, created split IDs if any, the receipt-total equality, and that no write occurred.
+   - No existing match: call `zenmoney_preview_new_receipt`. Supply `accountId` only when the exact paying account was identified; otherwise omit it and pass any payment clue as `accountHint`. Omit an unidentified date. The connector recommends missing values in the preview. For a mixed receipt, create one allocation part per supported category, normally with one category ID on each part. Never use this path merely because matching is ambiguous.
+8. Show the exact preview: affected existing IDs, old values, account, date, each proposed amount/category, created split IDs if any, the receipt-total equality, and that no write occurred. Visibly mark only entries returned in `suggestedFields` as suggested, including their reason and confidence. Do not describe suggested values as receipt-identified.
 9. Ask the user to explicitly confirm that exact preview.
 10. Only after confirmation, call the matching apply tool with the returned token and `confirmed: true`. Do not substitute a different path or allocation.
 11. Report the verified final IDs, amounts, categories, and receipt total. If the token expired or a source changed, make a new preview instead of retrying the stale one.

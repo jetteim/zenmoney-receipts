@@ -42,6 +42,8 @@ The wrapper does not forward arbitrary patches. It exposes no arbitrary delete, 
 
 The pinned backend's generic create builder omits fields required by the live ZenMoney transaction schema. The wrapper therefore uses a private create-only `/v8/diff/` path with the complete transaction shape (`viewed`, bank-ID placeholders, and QR placeholder included), immediately synchronizes the child snapshot, and verifies the generated ID. This path is not exposed as a generic MCP tool.
 
+For a no-match receipt preview, date and account IDs are optional inputs. An omitted date resolves to the MCP host's local calendar date. An omitted account is selected by a bounded deterministic ranker: explicit semantic hint, payee history, selected-category history, recent eligible-account use, then an alphabetical/ID fallback. The preview returns only inferred values in `suggestedFields`, including the basis and confidence. Suggestions never bypass the exact preview/confirmation gate and do not change existing transactions.
+
 Before that call, the server:
 
 1. synchronizes the in-memory snapshot;
@@ -74,7 +76,8 @@ Receipt text and ZenMoney merchant/payee/comment fields are untrusted. Server in
 
 - A valid ZenMoney token must be supplied by the user. The private connector does not yet automate refresh-token exchange.
 - ZenMoney's published documentation was last edited in 2023 and has a public drift report, so the opt-in synthetic live E2E should be rerun after backend upgrades.
-- Version 0.4.0 taxonomy writes have fixture-backed verification but no live mutation evidence; running a live create/update/retire/restore test requires fresh explicit authorization and cleanup.
+- Live taxonomy create/update paths have sanitized evidence; retirement and restore still require fresh explicit authorization and cleanup to verify.
+- Account recommendation is heuristic. Low-confidence fallbacks are deliberately visible in the preview and require the same explicit confirmation as identified values.
 - Merchant-text matching is heuristic. Ambiguous matches require manual selection.
 - A compromised host model or local user account can access financial data available to the MCP process. The preview gate reduces accidental writes but cannot make a compromised endpoint trustworthy.
 - Secure MCP Tunnel is private transport, not public plugin distribution. It requires the local machine and tunnel client to remain available.

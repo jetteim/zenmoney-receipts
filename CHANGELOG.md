@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — 2026-08-16
+
+- Make receipt date and paying-account inputs optional for matching and new-expense previews.
+- Suggest the MCP host's local current date when the receipt date is not identified.
+- Recommend an active paying account from semantic hints, bounded payee/category history, recent use, or a deterministic fallback.
+- Return only inferred date/account values in `suggestedFields` with basis and confidence while preserving exact preview confirmation.
+
 ## 0.4.0 — 2026-08-15
 
 - Add preview/confirm MCP flows to create, rename, reparent, restore, and retire ZenMoney categories.

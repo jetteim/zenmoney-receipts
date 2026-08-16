@@ -1,27 +1,29 @@
 # Project status
 
-Last updated: 2026-08-15
+Last updated: 2026-08-16
 
-Current version: 0.4.0
+Current version: 0.5.0
 
 Deployment target: private single-user local MCP; optional private ChatGPT Secure MCP Tunnel
 
 ## Current outcome
 
-The connector supports the prioritized product workflows: create one expense per receipt-supported category, match/correct existing expenses, review and safely modify category taxonomy, and produce bounded history evidence for saving suggestions. Receipt and taxonomy writes use explicit preview/confirmation, optimistic concurrency, and post-write verification. The repository has reproducible installation, structured diagnostics, CI/security policy, durable roadmap/handoff context, and sanitized live receipt E2E evidence.
+The connector supports the prioritized product workflows: create one expense per receipt-supported category, match/correct existing expenses, review and safely modify category taxonomy, and produce bounded history evidence for saving suggestions. Missing receipt dates/accounts become visibly marked preview suggestions instead of extra questions. Receipt and taxonomy writes use explicit preview/confirmation, optimistic concurrency, and post-write verification. The repository has reproducible installation, structured diagnostics, CI/security policy, durable roadmap/handoff context, and sanitized live receipt E2E evidence.
 
 ## Verified baseline
 
 - Offline unit/contract tests, typecheck, production bundle, stdio smoke, and repository validation: required on every change.
 - Live read-only synchronization: passed on 2026-08-15 with 79 active categories and no financial records printed.
 - Opt-in synthetic write E2E: passed 4/4 on the final v0.3.0 build on 2026-08-15; all exact generated IDs were deleted and cleanup verified.
+- User-confirmed receipt creation: one live no-match receipt was previewed, confirmed, created, and independently read back on 2026-08-16 without recording financial payloads in evidence.
 - Live savings-insights read: passed over a non-truncated 90-day sample; only counts were logged.
 - Codex local MCP registration: configured against this repository build on the maintainer machine.
 - Fresh ephemeral Codex session: connection status and read-only synchronization passed with the Keychain credential; no financial records were printed.
 - Proactive Codex workflows: receipt/category/savings skills are installed in the maintainer's Codex profile, validate successfully, and the installer is idempotent. New sessions can use receipt attachments or short intents instead of workflow prompts.
-- Taxonomy management: fixture-backed preview/apply, stale-write, hierarchy, retirement, idempotency, and MCP contract tests pass; live tag writes have not been authorized or run for v0.4.0.
+- Taxonomy management: fixture-backed preview/apply, stale-write, hierarchy, retirement, idempotency, and MCP contract tests pass. A separately confirmed live operation on 2026-08-15 verified two creates, six allowlisted updates, and 26 exact transaction-category replacements with post-write read-back; retirement and restore remain live-unverified.
+- Fast receipt defaults: omitted date/account inputs produce an exact host-local-today/account recommendation preview and mark only inferred fields with basis/confidence; fixture-backed matching, ranking, fallback, and adversarial-input tests pass.
 
-Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md`, `docs/evidence/2026-08-15-v0.4.0-taxonomy-verification.md`, and `docs/e2e-test-log-2026-08-15.md`. New release/live evidence belongs in `docs/evidence/` and must be sanitized.
+Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md`, `docs/evidence/2026-08-15-v0.4.0-taxonomy-verification.md`, `docs/evidence/2026-08-15-live-taxonomy-operation.md`, `docs/evidence/2026-08-16-live-receipt-operation.md`, `docs/evidence/2026-08-16-v0.5.0-fast-receipt-defaults.md`, and `docs/e2e-test-log-2026-08-15.md`. New release/live evidence belongs in `docs/evidence/` and must be sanitized.
 
 ## External setup state
 
@@ -42,5 +44,6 @@ Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md`, `docs/evidence/2026
 - Private ChatGPT availability depends on the local machine, tunnel process, and OpenAI workspace policy.
 - ZenMoney's public API documentation is old and has known drift; live verification remains a release gate.
 - Category hard deletion and bulk history consolidation are not exposed; `F-016` depends on crash-safe all-reference migration.
-- Taxonomy write compatibility is not yet proven against the live account because this change did not authorize real category mutations.
+- Live taxonomy retirement and restore compatibility remain unverified; create, rename, reparent, budget-behavior update, and exact transaction-category replacement were verified on 2026-08-15.
 - Receipt-informed grouping uses only receipts visible in the current session. Cross-session structured evidence memory is not implemented and is tracked as opt-in `F-017`; raw receipt storage remains prohibited.
+- Suggested paying accounts are heuristic and may be low-confidence; the exact preview exposes the basis and requires user confirmation or correction.

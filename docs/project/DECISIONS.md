@@ -49,3 +49,11 @@ Decision: expose explicit preview/apply pairs for category creation, allowlisted
 Reason: explicit user demand now exists, and the pinned backend provides optimistic-concurrency tag writes. ZenMoney tags support one-level parents and visibility/budget fields but no archive field. Retirement therefore sets all income/expense/budget selection flags to false while preserving IDs and historical references.
 
 Consequences: agents may rename, reparent, restore, or retire only after showing an exact preview and receiving confirmation. Hard deletion and bulk historical consolidation remain excluded until `F-005` and `F-016` cover durable migration and every reference type.
+
+## D-009 — Suggest missing receipt date/account inside the preview
+
+Decision: do not interrupt a no-match receipt workflow merely because its date or paying account was not identified. Suggest the MCP host's local current date and rank an eligible account from a semantic hint, bounded payee/category usage, recent use, or a deterministic fallback. Return only inferred fields in `suggestedFields` with basis and confidence.
+
+Reason: the exact preview already provides a safe, fast correction point. A separate date/account question adds friction without adding more protection than showing and confirming the selected values.
+
+Consequences: hosts must omit unidentified values rather than inventing them, visibly mark every returned suggestion, and bind the suggested date/account into the same short-lived preview token. Existing expense account/date fields remain immutable, and ambiguous transaction matches still require clarification.
