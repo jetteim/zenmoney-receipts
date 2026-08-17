@@ -14,7 +14,7 @@ If a credential may have been exposed, revoke/replace it first. Remove the affec
 
 - Receipt bytes remain in the host and are not accepted by the MCP server.
 - Credentials come from macOS Keychain or the MCP process environment and are never returned by tools.
-- Live data stays in process memory; bounded projections omit balances and raw API objects.
+- ZenMoney live data stays in process memory; bounded projections omit balances and raw API objects. Optional receipt memory stores only explicitly previewed sanitized groups, never raw receipts/OCR or credentials, under the documented local retention/permission boundary.
 - Mutations are receipt-scoped preview/apply pairs; there is no generic write/delete surface.
 - Private ChatGPT access is outbound through OpenAI Secure MCP Tunnel and is not a public service.
 

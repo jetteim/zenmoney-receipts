@@ -16,6 +16,9 @@ Run `node dist/cli.js schema` after a build for the authoritative machine-readab
 | `zenmoney_match_receipt` | Rank expense candidates from structured receipt facts; omitted date uses a marked host-local-today search suggestion. |
 | `zenmoney_category_summary` | Summarize usage while keeping instrument IDs separate. |
 | `zenmoney_spending_insights` | Produce bounded monthly/category/payee evidence for read-only saving suggestions. |
+| `zenmoney_receipt_memory_status` | Report local evidence enablement, bounds, corruption state, and exact path. |
+| `zenmoney_receipt_memory_search` | Aggregate bounded retained purpose evidence; labels are untrusted and instruments remain separate. |
+| `zenmoney_receipt_memory_get` | Return one exact sanitized local evidence record. |
 
 ## Preview and apply pairs
 
@@ -27,9 +30,14 @@ Run `node dist/cli.js schema` after a build for the authoritative machine-readab
 | `zenmoney_preview_category_create` | `zenmoney_apply_category_create` | Create one exact top-level or child category. |
 | `zenmoney_preview_category_update` | `zenmoney_apply_category_update` | Rename, reparent, restore, or change allowlisted income/expense/budget behavior. |
 | `zenmoney_preview_category_retirement` | `zenmoney_apply_category_retirement` | Disable a leaf category while preserving its historical references. |
+| `zenmoney_preview_receipt_memory_settings` | `zenmoney_apply_receipt_memory_settings` | Enable/disable local evidence or change retention; reducing retention can expire records. |
+| `zenmoney_preview_receipt_memory_delete` | `zenmoney_apply_receipt_memory_delete` | Delete one exact local evidence record; never changes ZenMoney. |
+| `zenmoney_preview_receipt_memory_purge` | `zenmoney_apply_receipt_memory_purge` | Purge all local evidence or reset corrupt state; never changes ZenMoney. |
 
 Preview tools make no writes and return a short-lived token bound to the exact validated plan. Apply tools require `confirmed: true`, reject stale/conflicting plans, and re-sync and verify the result. Reconciliation and taxonomy update/retirement are marked destructive because they can replace values the user relies on. No arbitrary mutation or delete tool is exposed.
 
 When `zenmoney_preview_new_receipt` receives no date, it suggests the MCP host's local calendar date. When it receives no `accountId`, it ranks active instrument-bearing accounts using `accountHint`, bounded payee/category history, recent use, then a deterministic fallback. The selected date/account remain visible in the exact preview, and only inferred values appear in `suggestedFields` with a basis, confidence, and reason. Confirmation binds those values like every other preview field.
 
-ZenMoney tags have no archive field. Retirement sets `showIncome`, `showOutcome`, `budgetIncome`, and `budgetOutcome` to `false`; it neither deletes the tag nor changes existing transaction tags. Category creation and updates enforce ZenMoney's maximum one parent level and fail closed if the complete taxonomy exceeds the 500-record safety bound. Bulk category consolidation/history migration is not exposed in version 0.5.0.
+Every receipt preview accepts optional `evidenceGroups`. Each group contains a narrow durable `purpose`, current `categoryId`, item count, and exact supported subtotal. The group category must occur on a proposed receipt transaction, all group subtotals must fit within the receipt total, and umbrella purposes such as `Produce`, `Groceries`, `Food`, and `Other` are rejected. When local memory is enabled, these exact groups are retained only after the financial apply verifies. The result always includes `receiptMemory.reviewReadiness`; three distinct retained receipts for the same normalized purpose/category/instrument make it ready for an immediate read-only category review.
+
+ZenMoney tags have no archive field. Retirement sets `showIncome`, `showOutcome`, `budgetIncome`, and `budgetOutcome` to `false`; it neither deletes the tag nor changes existing transaction tags. Category creation and updates enforce ZenMoney's maximum one parent level and fail closed if the complete taxonomy exceeds the 500-record safety bound. Bulk category consolidation/history migration is not exposed in version 0.6.0.

@@ -22,6 +22,15 @@ const expectedTools = [
   "zenmoney_apply_receipt_reconciliation",
   "zenmoney_preview_new_receipt",
   "zenmoney_apply_new_receipt",
+  "zenmoney_receipt_memory_status",
+  "zenmoney_receipt_memory_search",
+  "zenmoney_receipt_memory_get",
+  "zenmoney_preview_receipt_memory_settings",
+  "zenmoney_apply_receipt_memory_settings",
+  "zenmoney_preview_receipt_memory_delete",
+  "zenmoney_apply_receipt_memory_delete",
+  "zenmoney_preview_receipt_memory_purge",
+  "zenmoney_apply_receipt_memory_purge",
   "zenmoney_category_summary",
   "zenmoney_spending_insights"
 ];

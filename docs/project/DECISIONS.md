@@ -57,3 +57,15 @@ Decision: do not interrupt a no-match receipt workflow merely because its date o
 Reason: the exact preview already provides a safe, fast correction point. A separate date/account question adds friction without adding more protection than showing and confirming the selected values.
 
 Consequences: hosts must omit unidentified values rather than inventing them, visibly mark every returned suggestion, and bind the suggested date/account into the same short-lived preview token. Existing expense account/date fields remain immutable, and ambiguous transaction matches still require clarification.
+
+## D-010 — Opt-in minimal local receipt evidence with automatic review readiness
+
+Decision: keep receipt memory disabled by default and retain only exact user-previewed narrow purpose, current category ID, receipt month, item count, supported subtotal, instrument, timestamp, and a SHA-256 receipt idempotency key. Reject broad durable purposes such as `Produce`, `Groceries`, `Food`, and `Other`; never store raw receipt/OCR, merchant/product/brand/SKU text, transaction IDs, credentials, or raw ZenMoney responses. Record only after a verified financial apply.
+
+Decision: use one versioned JSON state file with atomic fsync/rename writes, a fixed-root exclusive lock, POSIX `0700`/`0600` permissions, 180-day default retention (30–730 configurable), 1,000-record and 4 MiB caps, exact inspect/delete/purge controls, and fail-closed corruption/symlink handling. Reads do not silently mutate state; retention compaction happens during confirmed settings changes or a new verified record.
+
+Decision: trigger read-only category review readiness after the same normalized narrow purpose appears in three distinct active receipts for one current category ID and instrument. Readiness never authorizes taxonomy mutation.
+
+Reason: transaction-level `Groceries` is too coarse to discover durable receipt-line groupings across ephemeral sessions, while storing artifacts or raw OCR creates unnecessary privacy and injection risk.
+
+Consequences: the local file can still reveal habits and is not application-encrypted; the single-user release relies on OS account/disk protection and explicit retention/deletion. Hosted or multi-user storage must add encryption and tenant isolation. Memory failure never compensates or rolls back a ZenMoney operation that already verified.

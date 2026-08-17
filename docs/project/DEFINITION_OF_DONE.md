@@ -4,7 +4,7 @@ A change is complete only when:
 
 - its roadmap/story outcome and failure behavior are explicit;
 - schemas and outputs are bounded, machine-readable where automated, and secret-safe;
-- write changes preserve preview, explicit confirmation, concurrency validation, idempotency, and post-write verification;
+- ZenMoney write changes preserve preview, explicit confirmation, concurrency validation, idempotency, and post-write verification; destructive local-state changes preserve exact preview, confirmation, and concurrency checks;
 - unit/contract/adversarial tests cover the changed boundary;
 - `npm run check` and `git diff --check` pass;
 - durable status, roadmap, traceability, and decisions are updated;
@@ -20,4 +20,4 @@ A release additionally requires:
 - rollback and credential-revocation instructions;
 - no credentials, raw receipts, financial exports, or unsanitized logs in Git history.
 
-Private ChatGPT readiness has two distinct gates: repository/tunnel tooling passes locally, then a human verifies tunnel association and the 16 discovered tools in the intended ChatGPT workspace. The first must never be reported as proof of the second.
+Private ChatGPT readiness has two distinct gates: repository/tunnel tooling passes locally, then a human verifies tunnel association and the current 31 discovered tools in the intended ChatGPT workspace. The first must never be reported as proof of the second.

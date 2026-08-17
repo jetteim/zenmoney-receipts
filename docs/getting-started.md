@@ -50,6 +50,15 @@ Restart the MCP host. Ask it:
 
 Once that passes, attach a receipt and use the prompt from the README. Every mutation must first return an exact preview and wait for your explicit confirmation.
 
+To opt into bounded cross-session receipt evidence, preview and confirm local memory separately:
+
+```bash
+node dist/cli.js memory enable --retention-days 180
+node dist/cli.js memory enable --retention-days 180 --confirm
+```
+
+This stores no receipt file or OCR. Read [Manage local receipt memory](how-to/manage-receipt-memory.md) before enabling it.
+
 Continue with [Use ZenMoney Receipts with Codex](how-to/use-with-codex.md) for receipt creation, category reviews, saving suggestions, ephemeral sessions, and troubleshooting.
 
 ## 5. Optional private ChatGPT connection

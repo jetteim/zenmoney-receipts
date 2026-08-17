@@ -15,6 +15,7 @@ describe("PreviewTokenManager", () => {
       transactionId: "tx-1",
       expectedChanged: 42,
       tagIds: ["groceries"],
+      evidenceGroups: [],
       expiresAt: 11_000
     });
   });

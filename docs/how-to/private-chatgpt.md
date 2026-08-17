@@ -48,7 +48,7 @@ Keep the last process running.
 1. Enable developer mode in ChatGPT settings.
 2. Open [ChatGPT Plugins](https://chatgpt.com/plugins), add a developer-mode app, and choose **Tunnel**.
 3. Select the associated tunnel or enter its `tunnel_id`.
-4. Review the 16 discovered tools before creating the connection.
+4. Review the 31 discovered tools before creating the connection.
 5. Open a new chat, enable the connection, and start with the read-only status/category prompt from the tutorial.
 
 The browser/UI step cannot be completed or verified by this repository. Availability depends on OpenAI account and workspace policy. ChatGPT does not inherit a Codex MCP configuration.

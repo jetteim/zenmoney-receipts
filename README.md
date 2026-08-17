@@ -2,7 +2,7 @@
 
 Private, local-first receipt categorization for ZenMoney through MCP. ChatGPT, Codex, Claude Code, or another MCP host reads the receipt image/PDF; this server receives structured receipt facts, finds or creates the expense, previews the exact mutation, waits for confirmation, applies it, and verifies the result.
 
-The source is shareable, but each current installation is private to its owner. Version 0.5.0 has no public GPT, hosted multi-user connector, or shared financial-data service; a separately secured hosted/public path is planned under roadmap item `F-014`.
+The source is shareable, but each current installation is private to its owner. Version 0.6.0 has no public GPT, hosted multi-user connector, or shared financial-data service; a separately secured hosted/public path is planned under roadmap item `F-014`.
 
 ## Start here
 
@@ -38,6 +38,7 @@ See the [getting-started tutorial](docs/getting-started.md), [everyday Codex usa
 - Review category usage without combining different ZenMoney instrument IDs.
 - Review category granularity and analyze monthly/category/payee evidence for realistic saving opportunities.
 - Preview and confirm exact category creation, rename, one-level reparenting, behavior changes, restoration, or retirement.
+- Optionally retain sanitized narrow receipt-purpose evidence for 180 days, inspect or purge it locally, and automatically review category granularity when a purpose recurs across three verified receipts.
 
 The MCP exposes no generic update/delete tool. Category retirement disables selection while preserving history; it is not deletion or bulk transaction migration. Ambiguous matches and unsupported allocations fail closed. Receipt bytes stay with the host model and are neither uploaded nor stored by this server.
 
@@ -59,7 +60,7 @@ To implement a reviewed plan:
 
 The assistant will show exact create/update/retirement previews and wait for confirmation. It cannot hard-delete a category or bulk-migrate historical transactions.
 
-Visible receipt line items can also support an optional, more-granular category suggestion. The assistant uses only receipts available in the current session; version 0.5.0 does not persist receipt artifacts or cross-session receipt evidence. Opt-in, inspectable local evidence memory is tracked as roadmap item `F-017`.
+When local receipt memory is enabled, the confirmed receipt preview can retain only sanitized purpose groups, category IDs, month, item count, subtotal, and instrument. It rejects umbrella evidence such as `Produce`, `Groceries`, `Food`, or `Other`; use durable leaves such as `Fresh fruit`, `Fresh vegetables`, or `Herbs`. Raw receipts, OCR, merchants, products, brands, SKUs, transaction IDs, and credentials are never stored. After the same narrow purpose appears in three distinct verified receipts for one category/instrument, the assistant automatically runs a read-only category review. See [Manage local receipt memory](docs/how-to/manage-receipt-memory.md).
 
 For saving suggestions:
 
@@ -67,14 +68,14 @@ For saving suggestions:
 
 ## Project status
 
-Version 0.5.0 is the private single-user baseline with proactive short-intent workflows, provenance-marked receipt defaults, bounded receipt and taxonomy writes, locked dependencies, CI, repository validation, machine-readable diagnostics, secure credential handoff, preview/confirmation, rollback attempts, read-only spending insights, and live receipt E2E evidence. Known operational limits—including process-local preview state, partially verified live taxonomy paths, and manual ZenMoney token lifecycle—are tracked in [project status](docs/project/STATUS.md) and the [roadmap](docs/project/ROADMAP.md).
+Version 0.6.0 adds opt-in, permission-restricted, retention/size-bounded receipt evidence memory and automatic read-only granularity review readiness to the private single-user baseline. Known operational limits—including process-local financial preview state, partially verified live taxonomy paths, and manual ZenMoney token lifecycle—are tracked in [project status](docs/project/STATUS.md) and the [roadmap](docs/project/ROADMAP.md).
 
 The latest sanitized E2E evidence is in [docs/e2e-test-log-2026-08-15.md](docs/e2e-test-log-2026-08-15.md). Live write tests are opt-in and must never be run without explicit authorization.
 
 ## Documentation
 
 - Tutorial: [getting started](docs/getting-started.md)
-- How-to: [use with Codex](docs/how-to/use-with-codex.md), [install with an agent](docs/how-to/install-with-agent.md), [connect private ChatGPT](docs/how-to/private-chatgpt.md), [continue development](docs/how-to/develop.md)
+- How-to: [use with Codex](docs/how-to/use-with-codex.md), [manage receipt memory](docs/how-to/manage-receipt-memory.md), [install with an agent](docs/how-to/install-with-agent.md), [connect private ChatGPT](docs/how-to/private-chatgpt.md), [continue development](docs/how-to/develop.md)
 - Reference: [CLI](docs/reference/cli.md), [MCP tools](docs/reference/mcp-tools.md)
 - Explanation: [architecture and security](docs/architecture-and-security.md)
 - Durable project context: [status](docs/project/STATUS.md), [roadmap](docs/project/ROADMAP.md), [decisions](docs/project/DECISIONS.md), [traceability](docs/project/TRACEABILITY.md)

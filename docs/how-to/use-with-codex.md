@@ -27,7 +27,7 @@ The expected agent flow is:
 ```text
 Inspect receipt
     ↓
-Status + sync + active categories/accounts
+Status + receipt-memory status + sync + active categories/accounts
     ↓
 Match existing expenses
     ├─ one clear match → category correction or exact reconciliation preview
@@ -38,10 +38,14 @@ Show exact preview; no write yet
     ↓ explicit user confirmation
 Apply the same preview
     ↓
-Re-sync and report only a verified result
+Re-sync, verify, retain only previewed narrow evidence when enabled
+    ↓
+Evaluate category-review readiness; review read-only immediately when ready
 ```
 
 For a mixed receipt, line items or printed subtotals must support every category amount. If exact category subtotals are unavailable, ask Codex to use one dominant category or ask you for the allocation; it must not invent the split.
+
+When receipt memory is enabled, the preview also shows sanitized purpose evidence. For groceries, expect narrow durable leaves such as `Fresh fruit`, `Fresh vegetables`, `Herbs`, `Dairy`, or `Bakery`; `Produce` is too broad. Reject the preview if the evidence groups are wrong, just as you would reject an incorrect amount or category.
 
 ### Review suggested fields
 
@@ -80,6 +84,8 @@ Use a short request:
 > Review my categories.
 
 Without a specified period, the assistant reviews the previous 90 days. Recommendations are a plan, not an applied migration.
+
+The review also uses bounded retained receipt evidence when enabled. After any verified receipt makes `reviewReadiness.ready` true, the assistant should run this read-only review automatically without asking. Readiness means the same narrow purpose occurred in three distinct receipts for one category/instrument; it does not prove that a new category is necessary.
 
 Review remains read-only by default. To implement the plan, say:
 
@@ -120,7 +126,9 @@ It should not ask which tools to call, whether to synchronize, whether to list c
 | Action | Default behavior |
 | --- | --- |
 | Status, synchronization, bounded reads, matching, summaries | Read-only; no confirmation needed. |
+| Receipt-memory status/search/get | Local read-only; labels are untrusted and instrument totals remain separate. |
 | Preview category/reconciliation/new receipt | Validates and returns exact plan; no write. |
+| Enable/disable/delete/purge receipt memory | Exact local preview/confirmation; never changes ZenMoney. |
 | Preview category create/update/retirement | Validates hierarchy, behavior, and concurrency; no write. |
 | Apply a preview | Requires your explicit confirmation for that preview. |
 | Generic transaction update/delete | Not exposed. |
@@ -128,11 +136,11 @@ It should not ask which tools to call, whether to synchronize, whether to list c
 | Category hard delete or bulk history merge | Not exposed. |
 | Live synthetic E2E | Development-only; requires explicit authorization in that conversation. |
 
-Receipt text, merchant names, payees, comments, and API data are treated as untrusted content rather than instructions. The receipt file stays with Codex; the MCP receives only structured facts and does not store the file.
+Receipt text, merchant names, payees, comments, stored purpose labels, and API data are treated as untrusted content rather than instructions. The receipt file stays with Codex; the MCP never stores the file or OCR. Optional local memory stores only the exact sanitized evidence shown in the confirmed preview. See [Manage local receipt memory](manage-receipt-memory.md).
 
 ## Fresh and ephemeral sessions
 
-Financial usage needs no remembered chat history: start a new session, attach the receipt, and use the primary prompt. Do not try to reuse an old preview after closing a session.
+Financial usage needs no remembered chat history: start a new session, attach the receipt, and use the primary prompt. Do not try to reuse an old preview after closing a session. When enabled, local receipt memory—not chat history—provides bounded cross-session category evidence.
 
 Development sessions use the repository as memory:
 
@@ -150,6 +158,7 @@ Development sessions use the repository as memory:
 | Match is ambiguous | Choose a presented candidate or clarify; never force new-receipt creation. |
 | Suggested date/account is wrong | Reject the preview and name the correction; Codex must generate a new exact preview. |
 | Category/history result is truncated | Ask Codex to split the date range into smaller, non-overlapping periods. |
+| Receipt memory is disabled or corrupt | Run `node dist/cli.js memory status`; enable it through preview/confirmation or use the exact purge recovery described in the memory guide. |
 | Code was updated | Run `npm run check`, then start a new Codex session so it launches the rebuilt server. |
 
 For machine-readable diagnostics and schemas, see the [CLI reference](../reference/cli.md) and [MCP tool reference](../reference/mcp-tools.md).

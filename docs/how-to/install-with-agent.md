@@ -47,6 +47,8 @@ codex mcp remove zenmoney-receipts
 
 For Claude Code, use `claude mcp remove -s user zenmoney-receipts`. This does not remove source files or Keychain credentials.
 
+Before uninstalling, inspect and confirm `node dist/cli.js memory purge` if the user wants all retained receipt evidence removed. Host unregistration and deleting the checkout do not remove application data.
+
 To remove the macOS Keychain item separately:
 
 ```bash

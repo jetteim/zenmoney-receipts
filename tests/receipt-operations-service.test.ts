@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { ZenMoneyReceiptService } from "../src/service.js";
 import { localCalendarDate } from "../src/receipt-defaults.js";
+import { ReceiptMemoryController } from "../src/receipt-memory.js";
+import { ReceiptMemoryStore } from "../src/receipt-memory-store.js";
 import type { Backend, JsonObject } from "../src/types.js";
 
 class ReceiptBackend implements Backend {
@@ -222,6 +227,71 @@ describe("receipt reconciliation", () => {
 });
 
 describe("new receipt creation", () => {
+  it("records narrow evidence only after verified apply and exposes review readiness", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "zenmoney-service-memory-"));
+    try {
+      const backend = new ReceiptBackend();
+      const memory = new ReceiptMemoryController(new ReceiptMemoryStore(directory));
+      const settings = await memory.previewSettings({ enabled: true });
+      await memory.applySettings({ previewToken: settings.previewToken, confirmed: true });
+      const service = new ZenMoneyReceiptService(
+        backend,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        memory
+      );
+
+      const preview = await service.previewNewReceipt({
+        receiptTotal: 6,
+        accountId: "account-1",
+        date: "2026-08-16",
+        parts: [{ amount: 6, tagIds: ["food"] }],
+        evidenceGroups: [
+          { purpose: "Fresh fruit", categoryId: "food", itemCount: 2, amount: 6 }
+        ]
+      });
+
+      expect(preview.receiptMemory).toMatchObject({
+        enabled: true,
+        willRecordEvidence: true,
+        willEvaluateReviewReadiness: true,
+        evidenceGroups: [{ purpose: "Fresh fruit", categoryId: "food" }]
+      });
+      expect((await memory.status()).storedRecordCount).toBe(0);
+      const applied = await service.applyNewReceipt({
+        previewToken: preview.previewToken,
+        confirmed: true
+      });
+      expect(applied.receiptMemory).toMatchObject({
+        status: "recorded",
+        reviewReadiness: { ready: false, threshold: { distinctReceiptsPerPurpose: 3 } }
+      });
+      expect((await memory.status()).storedRecordCount).toBe(1);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects broad Produce evidence before any backend read", async () => {
+    const backend = new ReceiptBackend();
+    const service = new ZenMoneyReceiptService(backend);
+
+    await expect(
+      service.previewNewReceipt({
+        receiptTotal: 6,
+        accountId: "account-1",
+        date: "2026-08-16",
+        parts: [{ amount: 6, tagIds: ["food"] }],
+        evidenceGroups: [{ purpose: "Produce", categoryId: "food", itemCount: 2, amount: 6 }]
+      })
+    ).rejects.toThrow("too broad");
+    expect(backend.calls).toHaveLength(0);
+  });
+
   it("suggests omitted fields and binds them to the confirmed create", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 7, 16, 12, 0));

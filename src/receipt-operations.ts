@@ -1,4 +1,8 @@
 import type { ZenTransaction } from "./types.js";
+import type {
+  ReceiptEvidenceGroup,
+  ReceiptMemoryReviewReadiness
+} from "./receipt-memory-store.js";
 
 export interface ReceiptPart {
   amount: number;
@@ -19,6 +23,7 @@ export interface ReconciliationPlan {
   sourceTotal: number;
   allocatedTotal: number;
   allocations: ExistingReceiptAllocation[];
+  evidenceGroups: ReceiptEvidenceGroup[];
 }
 
 export interface NewReceiptPlan {
@@ -29,7 +34,20 @@ export interface NewReceiptPlan {
   payee: string | null;
   comment: string | null;
   parts: PlannedReceiptPart[];
+  evidenceGroups: ReceiptEvidenceGroup[];
 }
+
+export type ReceiptMemoryResult =
+  | {
+      status: "disabled" | "no-evidence" | "recorded" | "already-recorded";
+      recordId?: string;
+      reviewReadiness: ReceiptMemoryReviewReadiness;
+    }
+  | {
+      status: "unavailable";
+      error: string;
+      reviewReadiness: ReceiptMemoryReviewReadiness | null;
+    };
 
 export interface ReceiptOperationResult {
   applied: boolean;
@@ -38,6 +56,7 @@ export interface ReceiptOperationResult {
   receiptTotal: number;
   transactionIds: string[];
   transactions: ZenTransaction[];
+  receiptMemory: ReceiptMemoryResult;
 }
 
 export function cents(value: number): number {

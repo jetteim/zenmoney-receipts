@@ -1,14 +1,14 @@
 # Project status
 
-Last updated: 2026-08-16
+Last updated: 2026-08-17
 
-Current version: 0.5.0
+Current version: 0.6.0
 
 Deployment target: private single-user local MCP; optional private ChatGPT Secure MCP Tunnel
 
 ## Current outcome
 
-The connector supports the prioritized product workflows: create one expense per receipt-supported category, match/correct existing expenses, review and safely modify category taxonomy, and produce bounded history evidence for saving suggestions. Missing receipt dates/accounts become visibly marked preview suggestions instead of extra questions. Receipt and taxonomy writes use explicit preview/confirmation, optimistic concurrency, and post-write verification. The repository has reproducible installation, structured diagnostics, CI/security policy, durable roadmap/handoff context, and sanitized live receipt E2E evidence.
+The connector supports the prioritized product workflows: create one expense per receipt-supported category, match/correct existing expenses, review and safely modify category taxonomy, and produce bounded history evidence for saving suggestions. Missing receipt dates/accounts become visibly marked preview suggestions instead of extra questions. Opt-in local receipt memory now retains only exact confirmed narrow purpose groups after financial verification and automatically requests a read-only granularity review after the same purpose recurs in three receipts. Receipt and taxonomy writes use explicit preview/confirmation, optimistic concurrency, and post-write verification.
 
 ## Verified baseline
 
@@ -22,8 +22,9 @@ The connector supports the prioritized product workflows: create one expense per
 - Proactive Codex workflows: receipt/category/savings skills are installed in the maintainer's Codex profile, validate successfully, and the installer is idempotent. New sessions can use receipt attachments or short intents instead of workflow prompts.
 - Taxonomy management: fixture-backed preview/apply, stale-write, hierarchy, retirement, idempotency, and MCP contract tests pass. A separately confirmed live operation on 2026-08-15 verified two creates, six allowlisted updates, and 26 exact transaction-category replacements with post-write read-back; retirement and restore remain live-unverified.
 - Fast receipt defaults: omitted date/account inputs produce an exact host-local-today/account recommendation preview and mark only inferred fields with basis/confidence; fixture-backed matching, ranking, fallback, and adversarial-input tests pass.
+- Local receipt memory: fixture-backed permission, atomicity, idempotency, retention, concurrency, corruption recovery, hostile-label, exact deletion/purge, MCP schema, and verified-receipt integration tests pass. Broad `Produce` evidence is rejected in favor of narrow durable purposes. The maintainer installation is enabled with 180-day retention; no live financial write was needed for this local feature.
 
-Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md`, `docs/evidence/2026-08-15-v0.4.0-taxonomy-verification.md`, `docs/evidence/2026-08-15-live-taxonomy-operation.md`, `docs/evidence/2026-08-16-live-receipt-operation.md`, `docs/evidence/2026-08-16-v0.5.0-fast-receipt-defaults.md`, and `docs/e2e-test-log-2026-08-15.md`. New release/live evidence belongs in `docs/evidence/` and must be sanitized.
+Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md`, `docs/evidence/2026-08-15-v0.4.0-taxonomy-verification.md`, `docs/evidence/2026-08-15-live-taxonomy-operation.md`, `docs/evidence/2026-08-16-live-receipt-operation.md`, `docs/evidence/2026-08-16-v0.5.0-fast-receipt-defaults.md`, `docs/evidence/2026-08-17-v0.6.0-receipt-memory.md`, and `docs/e2e-test-log-2026-08-15.md`. New release/live evidence belongs in `docs/evidence/` and must be sanitized.
 
 ## External setup state
 
@@ -45,5 +46,6 @@ Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md`, `docs/evidence/2026
 - ZenMoney's public API documentation is old and has known drift; live verification remains a release gate.
 - Category hard deletion and bulk history consolidation are not exposed; `F-016` depends on crash-safe all-reference migration.
 - Live taxonomy retirement and restore compatibility remain unverified; create, rename, reparent, budget-behavior update, and exact transaction-category replacement were verified on 2026-08-15.
-- Receipt-informed grouping uses only receipts visible in the current session. Cross-session structured evidence memory is not implemented and is tracked as opt-in `F-017`; raw receipt storage remains prohibited.
+- Receipt-memory evidence starts only with newly confirmed receipt operations; it does not backfill historical receipts. The three-receipt readiness threshold is a review heuristic, not proof that a new category is warranted.
+- Receipt memory is not application-encrypted in the local single-user release; it relies on OS account/disk security plus `0700`/`0600` permissions. Hosted/multi-user storage requires encryption and tenant isolation.
 - Suggested paying accounts are heuristic and may be low-confidence; the exact preview exposes the basis and requires user confirmation or correction.

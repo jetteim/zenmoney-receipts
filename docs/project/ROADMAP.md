@@ -5,7 +5,7 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 ## Product priorities
 
 1. Receipt → recognize exact categories/amounts → create one verified transaction per category with marked date/account suggestions when needed (`F-012` and `F-018`, complete).
-2. Review existing categories → suggest more or less granular grouping, then safely implement requested structural changes (`F-009` and `F-015`, complete; bulk history merge deferred to `F-016`).
+2. Review existing categories and retained narrow receipt evidence → suggest more or less granular grouping, then safely implement requested structural changes (`F-009`, `F-015`, and `F-017`, complete; bulk history merge deferred to `F-016`).
 3. Review granular history → suggest realistic savings with evidence (`F-013`, complete and read-only).
 
 ## Ready / Now
@@ -43,14 +43,6 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 - Dependencies: `F-005` persistent operation journal and authoritative confirmation of ZenMoney reminder/budget deletion semantics.
 - Risks: incomplete history bounds, concurrent edits, invisible reminder/budget references, and destructive source deletion.
 
-### F-017 — Opt-in local receipt evidence memory
-
-- Outcome: fresh local-agent sessions can use prior user-approved receipt group evidence to recommend durable category granularity without storing raw images, PDFs, full OCR text, or credentials.
-- Acceptance evidence: privacy/schema decision; explicit enablement; permission-restricted and size-bounded local store; sanitized structured group records; idempotent recording after verified receipt writes; bounded inspect/search; per-record and full purge; retention controls; corrupt/concurrent-file tests; uninstall/data-location documentation.
-- Dependencies: decide whether at-rest OS encryption is required and align lifecycle events with `F-005`/`F-006` without placing receipt content in operational logs.
-- Risks: product/health/location inference from item groups, prompt injection in stored labels, unbounded accumulation, stale classification learning, and user surprise if persistence is implicit.
-- Boundary: disabled by default; never store the receipt artifact or arbitrary OCR. Current-session receipt comparison remains available without this feature.
-
 ### F-007 — ZenMoney OAuth lifecycle
 
 - Outcome: owned OAuth client flow supports authorization, refresh, revocation, and relinking without manual token replacement.
@@ -76,6 +68,7 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 - `F-013` bounded per-instrument spending insights and evidence-based savings workflow.
 - `F-015` bounded taxonomy create, rename, reparent, behavior, restore, and retirement preview/apply flows; confirmed live create/update/transaction-category evidence recorded on 2026-08-15, with retirement and restore still live-unverified.
 - `F-018` fast missing-field receipt previews: host-local-today date suggestion, bounded semantic/history account recommendation, and exact `suggestedFields` provenance labels without weakening confirmation.
+- `F-017` opt-in local receipt evidence memory: atomic permission-restricted bounded storage, 180-day default retention, inspect/delete/purge controls, verified-write idempotency, narrow-purpose validation, and automatic read-only category-review readiness after three distinct receipts.
 
 ## Later / Ideas
 

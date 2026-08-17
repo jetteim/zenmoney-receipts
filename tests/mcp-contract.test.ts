@@ -43,6 +43,15 @@ describe("MCP contract", () => {
       "zenmoney_apply_receipt_reconciliation",
       "zenmoney_preview_new_receipt",
       "zenmoney_apply_new_receipt",
+      "zenmoney_receipt_memory_status",
+      "zenmoney_receipt_memory_search",
+      "zenmoney_receipt_memory_get",
+      "zenmoney_preview_receipt_memory_settings",
+      "zenmoney_apply_receipt_memory_settings",
+      "zenmoney_preview_receipt_memory_delete",
+      "zenmoney_apply_receipt_memory_delete",
+      "zenmoney_preview_receipt_memory_purge",
+      "zenmoney_apply_receipt_memory_purge",
       "zenmoney_category_summary",
       "zenmoney_spending_insights"
     ]);
@@ -88,10 +97,30 @@ describe("MCP contract", () => {
     expect(previewNewReceipt?.inputSchema.required).not.toContain("date");
     expect(previewNewReceipt?.inputSchema.required).not.toContain("accountId");
     expect(previewNewReceipt?.inputSchema.properties).toHaveProperty("accountHint");
+    expect(previewNewReceipt?.inputSchema.properties).toHaveProperty("evidenceGroups");
+    const memorySearch = result.tools.find(
+      (tool) => tool.name === "zenmoney_receipt_memory_search"
+    );
+    expect(memorySearch?.annotations).toMatchObject({
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false
+    });
+    const memoryPurge = result.tools.find(
+      (tool) => tool.name === "zenmoney_apply_receipt_memory_purge"
+    );
+    expect(memoryPurge?.annotations).toMatchObject({
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false
+    });
     expect(SERVER_INSTRUCTIONS).toContain("preview each exact category create, update, or retirement");
     expect(SERVER_INSTRUCTIONS).toContain("never exposes arbitrary deletion");
-    expect(SERVER_INSTRUCTIONS).toContain("visible receipt line items as optional taxonomy evidence");
-    expect(SERVER_INSTRUCTIONS).toContain("Never delay the receipt write");
+    expect(SERVER_INSTRUCTIONS).toContain("Fresh fruit, Fresh vegetables, or Herbs");
+    expect(SERVER_INSTRUCTIONS).toContain("never broad labels such as Produce");
+    expect(SERVER_INSTRUCTIONS).toContain("immediately run a read-only category review");
     expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("reconciliation preview/apply pair");
     expect(SERVER_INSTRUCTIONS.slice(0, 512)).toContain("even with no instructions");
     expect(SERVER_INSTRUCTIONS).toContain("Never ask the user to restate this workflow");

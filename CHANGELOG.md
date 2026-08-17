@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 — 2026-08-17
+
+- Add opt-in local receipt evidence memory with 180-day default retention, 1,000-record/4 MiB bounds, POSIX-private permissions, atomic locking/writes, and fail-closed corruption handling.
+- Bind sanitized narrow purpose evidence into exact receipt previews and retain it only after the ZenMoney operation verifies; raw receipts, OCR, merchants, products, brands, SKUs, transaction IDs, and credentials remain excluded.
+- Reject umbrella evidence such as `Produce`, `Groceries`, `Food`, and `Other` in favor of durable leaves such as `Fresh fruit`, `Fresh vegetables`, and `Herbs`.
+- Add bounded local status/search/get plus exact preview/apply controls for settings, single-record deletion, and full purge through MCP and JSON CLI commands.
+- Evaluate review readiness after every verified receipt and direct agents to perform an immediate read-only taxonomy review after a narrow purpose recurs in three distinct receipts for one category/instrument.
+- Add privacy, retention, uninstall, data-location, agent-workflow, concurrency, corruption, hostile-input, and verified-write integration documentation/tests.
+
 ## 0.5.0 — 2026-08-16
 
 - Make receipt date and paying-account inputs optional for matching and new-expense previews.

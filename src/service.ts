@@ -5,6 +5,11 @@ import { OperationPreviewStore } from "./operation-preview-store.js";
 import { PreviewTokenManager } from "./preview-token.js";
 import { projectAccounts, projectTags, projectTransaction, projectTransactions } from "./projection.js";
 import { rankReceiptMatches, shiftDate } from "./receipt.js";
+import { ReceiptMemoryController } from "./receipt-memory.js";
+import {
+  validateReceiptEvidenceGroups,
+  type ReceiptEvidenceGroup
+} from "./receipt-memory-store.js";
 import {
   recommendReceiptAccount,
   resolveReceiptDate,
@@ -15,6 +20,7 @@ import {
   sameAmount,
   sameTags,
   type NewReceiptPlan,
+  type ReceiptMemoryResult,
   type ReceiptOperationResult,
   type ReceiptPart,
   type ReconciliationPlan
@@ -69,7 +75,8 @@ export class ZenMoneyReceiptService {
     private readonly categoryRetirePreviews = new OperationPreviewStore<
       CategoryUpdatePlan,
       CategoryMutationResult
-    >()
+    >(),
+    private readonly receiptMemory = new ReceiptMemoryController()
   ) {}
 
   status(): { configured: boolean; credentialSource: string; privacy: string } {
@@ -484,7 +491,11 @@ export class ZenMoneyReceiptService {
     };
   }
 
-  async previewCategory(input: { transactionId: string; tagIds: string[] }) {
+  async previewCategory(input: {
+    transactionId: string;
+    tagIds: string[];
+    evidenceGroups?: ReceiptEvidenceGroup[] | undefined;
+  }) {
     await this.sync(false);
     const transaction = requireTransaction(
       await this.backend.call("transactions_get", { id: input.transactionId })
@@ -495,6 +506,7 @@ export class ZenMoneyReceiptService {
     if (transaction.changed === null) {
       throw new Error("transaction has no concurrency version and cannot be updated safely");
     }
+    const evidenceGroups = validateReceiptEvidenceGroups(input.evidenceGroups, transaction.outcome);
 
     const categories = await this.listCategories(false);
     const byId = new Map(
@@ -504,16 +516,19 @@ export class ZenMoneyReceiptService {
     if (selected.some((category) => category === undefined)) {
       throw new Error("one or more category ids are missing or archived");
     }
+    validateEvidenceCategories(evidenceGroups, new Set(input.tagIds));
 
     const signed = this.previews.create({
       transactionId: transaction.id,
       expectedChanged: transaction.changed,
-      tagIds: input.tagIds
+      tagIds: input.tagIds,
+      evidenceGroups
     });
     return {
       operation: "replace transaction categories",
       before: { transaction, categories: categoryNames(transaction.tag, categories) },
       proposed: { tagIds: input.tagIds, categories: selected.map((category) => category!.title) },
+      receiptMemory: await this.describeReceiptMemory(evidenceGroups),
       previewToken: signed.token,
       expiresAt: signed.expiresAt,
       requiresConfirmation: true,
@@ -532,7 +547,18 @@ export class ZenMoneyReceiptService {
     );
 
     if (sameIds(current.tag, preview.tagIds)) {
-      return { applied: false, alreadyApplied: true, verified: true, transaction: current };
+      return {
+        applied: false,
+        alreadyApplied: true,
+        verified: true,
+        transaction: current,
+        receiptMemory: await this.recordReceiptMemory({
+          transactionIds: [current.id],
+          receiptDate: current.date,
+          instrument: current.outcomeInstrument,
+          groups: preview.evidenceGroups
+        })
+      };
     }
     if (current.changed !== preview.expectedChanged) {
       throw new Error("transaction changed after preview; review it and create a new preview");
@@ -550,14 +576,27 @@ export class ZenMoneyReceiptService {
     if (!sameIds(updated.tag, preview.tagIds)) {
       throw new Error("ZenMoney did not confirm the requested category change");
     }
-    return { applied: true, alreadyApplied: false, verified: true, transaction: updated };
+    return {
+      applied: true,
+      alreadyApplied: false,
+      verified: true,
+      transaction: updated,
+      receiptMemory: await this.recordReceiptMemory({
+        transactionIds: [updated.id],
+        receiptDate: updated.date,
+        instrument: updated.outcomeInstrument,
+        groups: preview.evidenceGroups
+      })
+    };
   }
 
   async previewReceiptReconciliation(input: {
     receiptTotal: number;
     allocations: Array<{ transactionId: string; parts: ReceiptPart[] }>;
+    evidenceGroups?: ReceiptEvidenceGroup[] | undefined;
   }) {
     validateMoney(input.receiptTotal, "receipt total");
+    const evidenceGroups = validateReceiptEvidenceGroups(input.evidenceGroups, input.receiptTotal);
     if (input.allocations.length === 0) {
       throw new Error("at least one existing expense allocation is required");
     }
@@ -612,12 +651,17 @@ export class ZenMoneyReceiptService {
     if (allocatedTotal !== cents(input.receiptTotal)) {
       throw new Error("allocated parts must sum exactly to the receipt total");
     }
+    validateEvidenceCategories(
+      evidenceGroups,
+      new Set(allocations.flatMap((allocation) => allocation.parts.flatMap((part) => part.tagIds)))
+    );
 
     const plan: ReconciliationPlan = {
       receiptTotal: input.receiptTotal,
       sourceTotal: sourceTotal / 100,
       allocatedTotal: allocatedTotal / 100,
-      allocations
+      allocations,
+      evidenceGroups
     };
     const preview = this.reconciliationPreviews.create(plan);
     return {
@@ -636,6 +680,7 @@ export class ZenMoneyReceiptService {
           categories: categoryNames(part.tagIds, categories)
         }))
       })),
+      receiptMemory: await this.describeReceiptMemory(evidenceGroups),
       ...preview,
       requiresConfirmation: true,
       rollback:
@@ -652,8 +697,10 @@ export class ZenMoneyReceiptService {
     payee?: string | undefined;
     comment?: string | undefined;
     parts: ReceiptPart[];
+    evidenceGroups?: ReceiptEvidenceGroup[] | undefined;
   }) {
     validateMoney(input.receiptTotal, "receipt total");
+    const evidenceGroups = validateReceiptEvidenceGroups(input.evidenceGroups, input.receiptTotal);
     const receiptDate = resolveReceiptDate(input.date);
     const accountHint = validateAccountHint(input.accountHint);
     if (input.accountId && accountHint) {
@@ -667,6 +714,10 @@ export class ZenMoneyReceiptService {
       categories.filter((category) => !category.archive).map((category) => category.id)
     );
     validateParts(input.parts, activeCategoryIds);
+    validateEvidenceCategories(
+      evidenceGroups,
+      new Set(input.parts.flatMap((part) => part.tagIds))
+    );
     if (input.parts.reduce((total, part) => total + cents(part.amount), 0) !== cents(input.receiptTotal)) {
       throw new Error("new expense parts must sum exactly to the receipt total");
     }
@@ -696,7 +747,8 @@ export class ZenMoneyReceiptService {
       date: receiptDate.value,
       payee: input.payee?.trim() || null,
       comment: input.comment?.trim() || null,
-      parts: input.parts.map((part) => ({ ...part, transactionId: randomUUID() }))
+      parts: input.parts.map((part) => ({ ...part, transactionId: randomUUID() })),
+      evidenceGroups
     };
     const preview = this.creationPreviews.create(plan);
     return {
@@ -738,6 +790,7 @@ export class ZenMoneyReceiptService {
         tagIds: part.tagIds,
         categories: categoryNames(part.tagIds, categories)
       })),
+      receiptMemory: await this.describeReceiptMemory(evidenceGroups),
       ...preview,
       requiresConfirmation: true,
       rollback: "If one create fails, the connector attempts to delete every part created by this preview.",
@@ -859,7 +912,13 @@ export class ZenMoneyReceiptService {
         verified: true,
         receiptTotal: plan.receiptTotal,
         transactionIds: transactions.map((transaction) => transaction.id),
-        transactions
+        transactions,
+        receiptMemory: await this.recordReceiptMemory({
+          transactionIds: transactions.map((transaction) => transaction.id),
+          receiptDate: plan.allocations[0]?.source.date ?? null,
+          instrument: plan.allocations[0]?.source.outcomeInstrument ?? null,
+          groups: plan.evidenceGroups
+        })
       };
       this.reconciliationPreviews.markApplied(input.previewToken, result);
       return result;
@@ -937,7 +996,13 @@ export class ZenMoneyReceiptService {
         verified: true,
         receiptTotal: plan.receiptTotal,
         transactionIds: transactions.map((transaction) => transaction.id),
-        transactions
+        transactions,
+        receiptMemory: await this.recordReceiptMemory({
+          transactionIds: transactions.map((transaction) => transaction.id),
+          receiptDate: plan.date,
+          instrument: plan.instrument,
+          groups: plan.evidenceGroups
+        })
       };
       this.creationPreviews.markApplied(input.previewToken, result);
       return result;
@@ -952,6 +1017,61 @@ export class ZenMoneyReceiptService {
       this.creationPreviews.reset(input.previewToken);
       const message = error instanceof Error ? error.message : "new receipt creation failed";
       throw new Error(`${message}; compensating rollback completed`);
+    }
+  }
+
+  private async describeReceiptMemory(groups: ReceiptEvidenceGroup[]) {
+    const status = await this.receiptMemory.status();
+    return {
+      enabled: status.enabled,
+      available: !status.corrupt,
+      willRecordEvidence: status.enabled && !status.corrupt && groups.length > 0,
+      willEvaluateReviewReadiness: true,
+      retentionDays: status.retentionDays,
+      evidenceGroups: groups,
+      privacy: status.privacy,
+      ...(status.error ? { error: status.error } : {})
+    };
+  }
+
+  private async recordReceiptMemory(input: {
+    transactionIds: string[];
+    receiptDate: string | null;
+    instrument: number | null;
+    groups: ReceiptEvidenceGroup[];
+  }): Promise<ReceiptMemoryResult> {
+    if (input.receiptDate === null || input.instrument === null) {
+      let readiness: Awaited<ReturnType<ReceiptMemoryController["readiness"]>> | null = null;
+      try {
+        readiness = await this.receiptMemory.readiness();
+      } catch {
+        // The financial operation has already been verified; local memory must not undo it.
+      }
+      return {
+        status: "unavailable",
+        error: "verified transaction lacks a date or instrument required for local receipt evidence",
+        reviewReadiness: readiness
+      };
+    }
+    try {
+      return await this.receiptMemory.recordVerified({
+        transactionIds: input.transactionIds,
+        receiptDate: input.receiptDate,
+        instrument: input.instrument,
+        groups: input.groups
+      });
+    } catch (error) {
+      let readiness: Awaited<ReturnType<ReceiptMemoryController["readiness"]>> | null = null;
+      try {
+        readiness = await this.receiptMemory.readiness();
+      } catch {
+        // Report the bounded failure below without masking the verified ZenMoney result.
+      }
+      return {
+        status: "unavailable",
+        error: error instanceof Error ? error.message.slice(0, 240) : "local receipt memory failed",
+        reviewReadiness: readiness
+      };
     }
   }
 
@@ -1244,6 +1364,48 @@ export class ZenMoneyReceiptService {
     };
   }
 
+  receiptMemoryStatus() {
+    return this.receiptMemory.status();
+  }
+
+  receiptMemorySearch(input: {
+    query?: string | undefined;
+    categoryId?: string | undefined;
+    monthFrom?: string | undefined;
+    monthTo?: string | undefined;
+    limit?: number | undefined;
+  }) {
+    return this.receiptMemory.search(input);
+  }
+
+  receiptMemoryGet(recordId: string) {
+    return this.receiptMemory.get(recordId);
+  }
+
+  previewReceiptMemorySettings(input: { enabled: boolean; retentionDays?: number | undefined }) {
+    return this.receiptMemory.previewSettings(input);
+  }
+
+  applyReceiptMemorySettings(input: { previewToken: string; confirmed: true }) {
+    return this.receiptMemory.applySettings(input);
+  }
+
+  previewReceiptMemoryDelete(recordId: string) {
+    return this.receiptMemory.previewDelete(recordId);
+  }
+
+  applyReceiptMemoryDelete(input: { previewToken: string; confirmed: true }) {
+    return this.receiptMemory.applyDelete(input);
+  }
+
+  previewReceiptMemoryPurge() {
+    return this.receiptMemory.previewPurge();
+  }
+
+  applyReceiptMemoryPurge(input: { previewToken: string; confirmed: true }) {
+    return this.receiptMemory.applyPurge(input);
+  }
+
   async close(): Promise<void> {
     await this.backend.close();
   }
@@ -1354,6 +1516,19 @@ function validateParts(parts: ReceiptPart[], activeCategoryIds: Set<string>): vo
     }
     if (part.tagIds.some((tagId) => !activeCategoryIds.has(tagId))) {
       throw new Error(`part ${index + 1} contains a missing or archived category id`);
+    }
+  }
+}
+
+function validateEvidenceCategories(
+  groups: ReceiptEvidenceGroup[],
+  receiptCategoryIds: Set<string>
+): void {
+  for (const group of groups) {
+    if (!receiptCategoryIds.has(group.categoryId)) {
+      throw new Error(
+        `receipt memory purpose '${group.purpose}' references a category not used by the proposed receipt transactions`
+      );
     }
   }
 }

@@ -10,6 +10,7 @@ import { LazyBackend } from "./backend.js";
 import { credentialStatus } from "./credentials.js";
 import { createServer } from "./server.js";
 import { ZenMoneyReceiptService } from "./service.js";
+import { ReceiptMemoryController } from "./receipt-memory.js";
 import type { Backend } from "./types.js";
 import { VERSION } from "./version.js";
 
@@ -120,6 +121,35 @@ function tunnelCheck(): Check {
       };
 }
 
+async function receiptMemoryCheck(): Promise<Check> {
+  const status = await new ReceiptMemoryController().status();
+  if (status.corrupt) {
+    const unsafePermissions =
+      status.error?.includes("group or other users") === true ||
+      status.error?.includes("owned by the current user") === true;
+    return {
+      id: "storage.receipt-memory",
+      status: "fail",
+      detail: status.error ?? "Local receipt memory is corrupt.",
+      remediation: unsafePermissions
+        ? "Move the store to a dedicated current-user directory with 0700 permissions; the connector will not chmod an existing shared path."
+        : "Run `zenmoney-receipts memory purge`, inspect the exact preview, then rerun with --confirm."
+    };
+  }
+  return status.enabled
+    ? {
+        id: "storage.receipt-memory",
+        status: "pass",
+        detail: `Enabled with ${status.retentionDays} day retention and ${status.activeRecordCount} active records.`
+      }
+    : {
+        id: "storage.receipt-memory",
+        status: "warn",
+        detail: `Disabled; no new receipt evidence will be retained. Data location: ${status.dataLocation}`,
+        remediation: "Run `zenmoney-receipts memory enable`, inspect the preview, then rerun with --confirm."
+      };
+}
+
 async function liveCheck(): Promise<Check> {
   const service = new ZenMoneyReceiptService(new LazyBackend());
   try {
@@ -154,7 +184,8 @@ async function doctor(live: boolean): Promise<number> {
     } satisfies Check,
     credentialCheck(),
     codexCheck(),
-    tunnelCheck()
+    tunnelCheck(),
+    await receiptMemoryCheck()
   ];
   if (live) checks.push(await liveCheck());
   const ok = checks.every((check) => check.status !== "fail");
@@ -197,15 +228,123 @@ async function schema(): Promise<number> {
   }
 }
 
+function parseMemoryOptions(args: string[]): {
+  positionals: string[];
+  values: Map<string, string>;
+  confirm: boolean;
+} {
+  const positionals: string[] = [];
+  const values = new Map<string, string>();
+  let confirm = false;
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index]!;
+    if (argument === "--confirm") {
+      if (confirm) throw new Error("--confirm may be supplied only once");
+      confirm = true;
+      continue;
+    }
+    if (argument.startsWith("--")) {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) throw new Error(`${argument} requires a value`);
+      if (values.has(argument)) throw new Error(`${argument} may be supplied only once`);
+      values.set(argument, value);
+      index += 1;
+      continue;
+    }
+    positionals.push(argument);
+  }
+  return { positionals, values, confirm };
+}
+
+function requireAllowedOptions(
+  parsed: ReturnType<typeof parseMemoryOptions>,
+  allowed: string[]
+): void {
+  for (const option of parsed.values.keys()) {
+    if (!allowed.includes(option)) throw new Error(`unsupported option: ${option}`);
+  }
+}
+
+function integerOption(value: string | undefined, field: string): number | undefined {
+  if (value === undefined) return undefined;
+  if (!/^\d+$/.test(value)) throw new Error(`${field} must be an integer`);
+  return Number(value);
+}
+
+async function memory(args: string[]): Promise<number> {
+  const [action, ...rest] = args;
+  const parsed = parseMemoryOptions(rest);
+  const controller = new ReceiptMemoryController();
+  const respond = (result: unknown) => {
+    output({ schemaVersion: "1", command: `memory.${action ?? "help"}`, ok: true, result });
+    return 0;
+  };
+
+  if (action === "status") {
+    requireAllowedOptions(parsed, []);
+    if (parsed.confirm || parsed.positionals.length > 0) throw new Error("memory status takes no arguments");
+    return respond(await controller.status());
+  }
+  if (action === "search") {
+    requireAllowedOptions(parsed, ["--query", "--category-id", "--month-from", "--month-to", "--limit"]);
+    if (parsed.confirm || parsed.positionals.length > 0) throw new Error("memory search accepts only filter options");
+    return respond(
+      await controller.search({
+        query: parsed.values.get("--query"),
+        categoryId: parsed.values.get("--category-id"),
+        monthFrom: parsed.values.get("--month-from"),
+        monthTo: parsed.values.get("--month-to"),
+        limit: integerOption(parsed.values.get("--limit"), "limit")
+      })
+    );
+  }
+  if (action === "get") {
+    requireAllowedOptions(parsed, []);
+    if (parsed.confirm || parsed.positionals.length !== 1) throw new Error("memory get requires one record id");
+    return respond(await controller.get(parsed.positionals[0]!));
+  }
+  if (action === "enable" || action === "disable") {
+    requireAllowedOptions(parsed, ["--retention-days"]);
+    if (parsed.positionals.length > 0) throw new Error(`memory ${action} takes no positional arguments`);
+    const retentionDays = integerOption(parsed.values.get("--retention-days"), "retention-days");
+    const preview = await controller.previewSettings({
+      enabled: action === "enable",
+      ...(retentionDays === undefined ? {} : { retentionDays })
+    });
+    if (!parsed.confirm) return respond(preview);
+    return respond(
+      await controller.applySettings({ previewToken: preview.previewToken, confirmed: true })
+    );
+  }
+  if (action === "delete") {
+    requireAllowedOptions(parsed, []);
+    if (parsed.positionals.length !== 1) throw new Error("memory delete requires one record id");
+    const preview = await controller.previewDelete(parsed.positionals[0]!);
+    if (!parsed.confirm) return respond(preview);
+    return respond(await controller.applyDelete({ previewToken: preview.previewToken, confirmed: true }));
+  }
+  if (action === "purge") {
+    requireAllowedOptions(parsed, []);
+    if (parsed.positionals.length > 0) throw new Error("memory purge takes no positional arguments");
+    const preview = await controller.previewPurge();
+    if (!parsed.confirm) return respond(preview);
+    return respond(await controller.applyPurge({ previewToken: preview.previewToken, confirmed: true }));
+  }
+  throw new Error(
+    "Usage: zenmoney-receipts memory <status | search | get ID | enable | disable | delete ID | purge> [options] [--confirm]"
+  );
+}
+
 async function main(): Promise<number> {
   const [command, ...args] = process.argv.slice(2);
   if (command === "doctor") return doctor(args.includes("--live"));
   if (command === "schema") return schema();
+  if (command === "memory") return memory(args);
   output({
     schemaVersion: "1",
     command: command ?? "help",
     ok: false,
-    error: "Usage: zenmoney-receipts <doctor [--live] | schema>"
+    error: "Usage: zenmoney-receipts <doctor [--live] | schema | memory ...>"
   });
   return 64;
 }

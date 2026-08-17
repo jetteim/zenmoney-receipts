@@ -1,10 +1,16 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
+import {
+  isReceiptEvidenceGroup,
+  type ReceiptEvidenceGroup
+} from "./receipt-memory-store.js";
+
 interface PreviewPayload {
   version: 1;
   transactionId: string;
   expectedChanged: number;
   tagIds: string[];
+  evidenceGroups: ReceiptEvidenceGroup[];
   expiresAt: number;
 }
 
@@ -24,7 +30,9 @@ export class PreviewTokenManager {
   }
 
   create(
-    input: Omit<PreviewPayload, "version" | "expiresAt">,
+    input: Omit<PreviewPayload, "version" | "expiresAt" | "evidenceGroups"> & {
+      evidenceGroups?: ReceiptEvidenceGroup[] | undefined;
+    },
     options: { now?: number; ttlMs?: number } = {}
   ): { token: string; expiresAt: string } {
     const now = options.now ?? Date.now();
@@ -33,6 +41,7 @@ export class PreviewTokenManager {
       transactionId: input.transactionId,
       expectedChanged: input.expectedChanged,
       tagIds: [...input.tagIds],
+      evidenceGroups: [...(input.evidenceGroups ?? [])],
       expiresAt: now + (options.ttlMs ?? 10 * 60_000)
     };
     const body = encode(JSON.stringify(payload));
@@ -41,7 +50,7 @@ export class PreviewTokenManager {
   }
 
   verify(token: string, now = Date.now()): PreviewPayload {
-    if (token.length > 4096) throw new Error("preview token is invalid");
+    if (token.length > 8192) throw new Error("preview token is invalid");
     const [body, receivedSignature, extra] = token.split(".");
     if (!body || !receivedSignature || extra !== undefined) {
       throw new Error("preview token is invalid");
@@ -92,6 +101,9 @@ function isPreviewPayload(value: unknown): value is PreviewPayload {
     Array.isArray(record.tagIds) &&
     record.tagIds.length >= 1 &&
     record.tagIds.length <= 5 &&
-    record.tagIds.every((item) => typeof item === "string" && item.length > 0)
+    record.tagIds.every((item) => typeof item === "string" && item.length > 0) &&
+    Array.isArray(record.evidenceGroups) &&
+    record.evidenceGroups.length <= 10 &&
+    record.evidenceGroups.every(isReceiptEvidenceGroup)
   );
 }
