@@ -2,56 +2,63 @@
 
 ## System context
 
-The user owns the receipt, ZenMoney account, local agent host, and optional ChatGPT workspace. The host extracts receipt facts and invokes this connector. The connector calls ZenMoney. OpenAI Secure MCP Tunnel is a transport boundary only for private ChatGPT use.
+The user owns the receipt and ZenMoney account. A local agent host or private ChatGPT connection extracts receipt facts and invokes this connector. The connector makes bounded calls to ZenMoney. Receipt bytes never cross the connector boundary.
 
 ## Containers
 
 ```text
-[Receipt + user]
-       |
-       v
-[Codex / Claude / ChatGPT host]
-       | local stdio, or private outbound tunnel
-       v
-[zenmoney-receipts MCP process]
-       ├─ private child stdio → [@nonnname/zenmoney-mcp backend] → [ZenMoney /v8/diff API]
-       └─ atomic local file → [sanitized receipt evidence memory]
+Local:
+[Receipt + user] → [Codex / Claude] → stdio → [MCP wrapper]
+                                              ├→ [private pinned backend] → [ZenMoney API]
+                                              └→ [private local state]
 
-[macOS Keychain or process environment] -- credential --> MCP/backend processes
+Hosted (separate deployment; no tunnel):
+[Receipt + user] → [ChatGPT / MCP client] → HTTPS /mcp → [Hosted MCP resource server]
+                                                      ├→ [external OAuth AS]
+                                                      ├→ [tenant MCP wrapper/backend] → [ZenMoney API]
+                                                      └→ [encrypted credential store + private durable state]
 ```
 
-No repository component stores receipt files, OCR, or a long-lived ZenMoney snapshot. Financial preview/application state is process-local. Optional receipt memory stores only user-previewed sanitized purpose groups, category IDs, month, item count, subtotal, instrument, and a one-way idempotency key.
+The local token comes from macOS Keychain or the process environment. Hosted ZenMoney credentials are AES-256-GCM envelopes keyed by an operator secret and separated by an HMAC of the authenticated tenant subject. A configured PostgreSQL store can hold encrypted credential/state envelopes; receipt memory, journals, and events still require the persistent disk in the initial single-instance profile.
 
-## MCP components
+## Components
 
-- `server.ts`: bounded schemas, safety annotations, sanitized MCP responses.
-- `service.ts`: matching, validation, preview/apply orchestration, post-write verification.
-- `receipt-operations.ts`: exact reconciliation/create plans and compensating actions.
-- `receipt-defaults.ts`: host-local date resolution and bounded deterministic account recommendation.
-- `receipt-memory-store.ts`: versioned, permission-restricted, retention/record/size-bounded atomic evidence state and readiness aggregation.
-- `receipt-memory.ts`: exact local settings/delete/purge preview controls plus bounded inspection.
-- `taxonomy-operations.ts`: allowlisted category plans, exact comparison, and retirement-state derivation.
-- `direct-write.ts`: complete receipt-create API shape.
-- `backend.ts`: private child MCP lifecycle and concurrency-aware upstream calls.
-- `credentials.ts`: environment/Keychain credential boundary.
-- `cli.ts` and `scripts/`: agent installation, diagnostics, and private-tunnel lifecycle.
+- `server.ts`: bounded MCP schemas, safety annotations, hosted-only authorization lifecycle tools.
+- `service.ts`: matching, validation, exact preview/apply orchestration, post-write verification, and recovery classification.
+- `receipt-operations.ts`: reconciliation/create plans and concurrency-safe compensation.
+- `category-consolidation.ts`: complete reference discovery, fingerprinting, migration, verification, and compensation.
+- `operation-journal.ts`: private, bounded, minimal crash-state records.
+- `observability.ts` and `support-bundle.ts`: allowlisted local support signals.
+- `receipt-defaults.ts`: host-local date and bounded account recommendation.
+- `receipt-memory-store.ts` / `receipt-memory.ts`: opt-in bounded narrow-purpose evidence and exact local controls.
+- `taxonomy-operations.ts`: allowlisted taxonomy plan and retirement logic.
+- `backend.ts`: private child lifecycle, credential boundary, sanitized full-reference snapshot, and upstream calls.
+- `hosted-server.ts`, `hosted-auth.ts`, `hosted-oauth-tools.ts`, `zenmoney-oauth.ts`: direct HTTP transport, resource-server validation, tenant/session isolation, and ZenMoney linking.
+- `hosted-credential-store.ts`, `postgres-credential-store.ts`: encrypted per-tenant credential/state persistence.
+- `cli.ts` and `scripts/`: local installation, schema, doctor, support bundle, evaluation, and validation.
 
-## Dynamic write sequence
+## Receipt write sequence
 
 ```text
 Host → service: sync + select exact source/account/categories
-Host → preview tool: structured receipt plan
-service → host: before/after + marked suggestions + signed/opaque short-lived token
+Host → preview: structured receipt plan
+service → host: before/after + marked suggestions + operationId + short-lived token
 User → host: explicit confirmation
-Host → apply tool: token + confirmed=true
-service → backend/ZenMoney: bounded write(s)
-service → backend/ZenMoney: re-sync and verify
-service → local memory: retain exact previewed evidence only after verification; evaluate readiness
-service → host: verified result + readiness, or scoped compensation/manual-review state
+Host → apply: exact token + confirmed=true
+service → journal: applying / write attempt
+service → ZenMoney: bounded write(s)
+service → ZenMoney: re-sync and verify
+service → journal: completed, compensated, or manual-review
+service → receipt memory: retain approved evidence only after verification
+service → host: verified result + recovery/readiness state
 ```
 
-Receipt-memory readiness is computed independently for each normalized narrow purpose, current category ID, and instrument. Three distinct retained receipts make a candidate review-ready. The host then performs a read-only category review; taxonomy mutations remain a separate preview/confirmation sequence.
+If a process disappears after a write starts, a new session lists the minimal journal record and uses read-only recovery inspection before any retry. Unapplied preview tokens remain process-local and expire.
 
-Taxonomy mutations use the same preview/confirm sequence but call only the upstream tag create/update verbs. The service re-resolves the exact category version, sibling names, parent depth, parent activity, and child state immediately before writing. Retirement changes four visibility/budget flags and preserves category/transaction IDs; no category delete or bulk retag component exists.
+## Consolidation sequence
 
-F-005 will add a minimal permission-restricted operation journal between apply phases so crash recovery does not rely solely on process memory.
+The service reads a complete bounded reference snapshot, blocks if source budgets exist or reference bounds are exceeded, and previews exact counts. After confirmation it rechecks taxonomy versions and reference fingerprints, updates transactions/reminders/markers, retires the empty source last, then re-reads and proves that no source reference remains. Scoped reverse operations use acknowledged concurrency versions; an incomplete reverse becomes manual review.
+
+## Hosted authentication sequence
+
+The external authorization server authenticates the MCP client. The hosted resource server introspects the bearer token and verifies issuer, audience, subject, scope, and expiration before creating or reusing a subject-bound MCP session. ZenMoney authorization is initiated separately through a one-time state/PKCE URL; the callback exchanges the code and stores only the encrypted tenant credential. See `docs/explanation/hosted-architecture.md` for the threat model and deployment view.

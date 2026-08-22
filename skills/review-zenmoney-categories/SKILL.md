@@ -1,6 +1,6 @@
 ---
 name: review-zenmoney-categories
-description: Review bounded ZenMoney spending summaries, recommend clearer grouping, and safely implement an explicitly requested plan through exact category create, update, or retirement previews. Use when the user asks to audit, simplify, reorganize, improve, create, rename, move, restore, or retire spending categories.
+description: Review bounded ZenMoney spending summaries, recommend clearer grouping, and safely implement an explicitly requested plan through exact category create, update, retirement, or consolidation previews. Use when the user asks to audit, simplify, reorganize, improve, create, rename, move, restore, retire, or merge spending categories.
 ---
 
 # Review ZenMoney Categories
@@ -35,7 +35,8 @@ Keep an ordinary review read-only. If the user explicitly asks to implement a pl
 1. Map each new category to `zenmoney_preview_category_create`.
 2. Map each rename, one-level move, behavior change, or restoration to `zenmoney_preview_category_update`.
 3. Map removal from future selection to `zenmoney_preview_category_retirement`.
-4. Show the exact previews together and wait for explicit confirmation.
-5. Apply only the confirmed previews with their corresponding apply tools, then report success only when every result has `verified: true`.
+4. Map a historical merge to `zenmoney_preview_category_consolidation`. Show its exact reference counts. If `applyAvailable` is false because source budgets exist, stop the merge and tell the user to move or clear those budgets in ZenMoney; never substitute a partial retag.
+5. Show the exact previews together and wait for explicit confirmation.
+6. Apply only the confirmed previews with their corresponding apply tools, then report success only when every result has `verified: true`. If a result is interrupted or uncertain, call `zenmoney_inspect_operation_recovery` before any retry.
 
-ZenMoney tags do not have archive semantics. Retirement disables income, expense, and budget selection while preserving historical transaction references. Never describe it as deletion or a history merge. This connector does not hard-delete categories or bulk-migrate historical transactions. If individual existing transactions need correction, use the receipt category preview/confirm flow for each exact transaction.
+ZenMoney tags do not have archive semantics. Retirement disables income, expense, and budget selection while preserving historical references. Never describe it as deletion. Consolidation is the only bulk migration surface and is restricted to a complete journaled source-to-target plan; individual corrections still use the receipt category preview/confirm flow.

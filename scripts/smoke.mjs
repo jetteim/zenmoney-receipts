@@ -4,6 +4,8 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 const expectedTools = [
   "zenmoney_connection_status",
   "zenmoney_sync",
+  "zenmoney_list_operation_recovery",
+  "zenmoney_inspect_operation_recovery",
   "zenmoney_list_accounts",
   "zenmoney_list_categories",
   "zenmoney_preview_category_create",
@@ -12,6 +14,8 @@ const expectedTools = [
   "zenmoney_apply_category_update",
   "zenmoney_preview_category_retirement",
   "zenmoney_apply_category_retirement",
+  "zenmoney_preview_category_consolidation",
+  "zenmoney_apply_category_consolidation",
   "zenmoney_list_transactions",
   "zenmoney_get_transaction",
   "zenmoney_suggest_categories",

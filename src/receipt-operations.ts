@@ -57,6 +57,7 @@ export interface ReceiptOperationResult {
   transactionIds: string[];
   transactions: ZenTransaction[];
   receiptMemory: ReceiptMemoryResult;
+  operationId?: string;
 }
 
 export function cents(value: number): number {

@@ -2,6 +2,14 @@ import { randomUUID } from "node:crypto";
 
 import { credentialStatus } from "./credentials.js";
 import { OperationPreviewStore } from "./operation-preview-store.js";
+import {
+  OperationJournal,
+  operationIdForPreviewToken,
+  plannedTransactionFingerprint,
+  transactionFingerprint,
+  type JournalTarget
+} from "./operation-journal.js";
+import { PrivacySafeEventStore } from "./observability.js";
 import { PreviewTokenManager } from "./preview-token.js";
 import { projectAccounts, projectTags, projectTransaction, projectTransactions } from "./projection.js";
 import { rankReceiptMatches, shiftDate } from "./receipt.js";
@@ -25,6 +33,16 @@ import {
   type ReceiptPart,
   type ReconciliationPlan
 } from "./receipt-operations.js";
+import {
+  consolidationCategoryFingerprint,
+  parseFullCategoryReferenceSnapshot,
+  referenceFingerprint,
+  referencesForConsolidation,
+  type CategoryConsolidationPlan,
+  type CategoryReference,
+  type ConsolidationReferenceKind,
+  type FullCategoryReferenceSnapshot
+} from "./category-consolidation.js";
 import {
   categoryMatchesFields,
   proposedCategory,
@@ -76,7 +94,20 @@ export class ZenMoneyReceiptService {
       CategoryUpdatePlan,
       CategoryMutationResult
     >(),
-    private readonly receiptMemory = new ReceiptMemoryController()
+    private readonly receiptMemory = new ReceiptMemoryController(),
+    private readonly operationJournal = new OperationJournal(),
+    private readonly events = new PrivacySafeEventStore(),
+    private readonly consolidationPreviews = new OperationPreviewStore<
+      CategoryConsolidationPlan,
+      {
+        applied: boolean;
+        alreadyApplied: boolean;
+        verified: boolean;
+        operationId: string;
+        affected: { transactions: number; reminders: number; reminderMarkers: number };
+        source: ZenTag;
+      }
+    >()
   ) {}
 
   status(): { configured: boolean; credentialSource: string; privacy: string } {
@@ -84,7 +115,8 @@ export class ZenMoneyReceiptService {
     return {
       configured: status.configured,
       credentialSource: status.source,
-      privacy: "Token and ZenMoney responses are kept in process memory; receipt files are not sent to this server."
+      privacy:
+        "Credentials and ZenMoney responses stay in process memory. Receipt files are not sent here. The crash-recovery journal stores only target ids and one-way state fingerprints in a private local file."
     };
   }
 
@@ -313,6 +345,243 @@ export class ZenMoneyReceiptService {
     );
   }
 
+  async previewCategoryConsolidation(input: { sourceCategoryId: string; targetCategoryId: string }) {
+    if (input.sourceCategoryId === input.targetCategoryId) {
+      throw new Error("source and target categories must be different");
+    }
+    await this.sync(false);
+    const categories = await this.listTaxonomyCategories();
+    const source = requireCategory(categories, input.sourceCategoryId);
+    const target = requireCategory(categories, input.targetCategoryId);
+    if (source.retired) throw new Error("source category is already retired");
+    if (target.retired || target.archive || !target.showOutcome) {
+      throw new Error("target category must be an active expense category");
+    }
+    if (categories.some((category) => category.parent === source.id && !category.retired)) {
+      throw new Error("move or consolidate active child categories before consolidating their parent");
+    }
+    const snapshot = await this.fullCategoryReferenceSnapshot();
+    const references = referencesForConsolidation(snapshot, source.id, target.id);
+    const sourceBudgetReferences = snapshot.budgets.filter((budget) => budget.tag === source.id).length;
+    const counts = consolidationCounts(references);
+    if (sourceBudgetReferences > 0) {
+      return {
+        operation: "consolidate ZenMoney category",
+        applyAvailable: false,
+        source,
+        target,
+        affected: { ...counts, budgets: sourceBudgetReferences },
+        blockers: [
+          "The source category has budget references. The pinned ZenMoney backend exposes budgets read-only and current authoritative budget delete/merge semantics are unavailable; no partial migration was previewed."
+        ],
+        requiresConfirmation: false,
+        note: "No data has been changed. Move or clear the exact source budgets in ZenMoney, then create a fresh consolidation preview."
+      };
+    }
+    if (references.length > 500) {
+      return {
+        operation: "consolidate ZenMoney category",
+        applyAvailable: false,
+        source,
+        target,
+        affected: { ...counts, budgets: 0 },
+        blockers: ["The consolidation exceeds the 500-reference safety limit."],
+        requiresConfirmation: false,
+        note: "No data has been changed. Split the migration into a reviewed maintenance operation."
+      };
+    }
+    const patch: CategoryPatch = {
+      showIncome: false,
+      showOutcome: false,
+      budgetIncome: false,
+      budgetOutcome: false
+    };
+    const plan: CategoryConsolidationPlan = {
+      source,
+      target,
+      references,
+      sourceBudgetReferences,
+      sourceRetirement: {
+        categoryId: source.id,
+        expectedChanged: requireCategoryChanged(source),
+        before: source,
+        patch
+      }
+    };
+    const preview = this.consolidationPreviews.create(plan, { ttlMs: 20 * 60_000 });
+    return {
+      operation: "consolidate ZenMoney category",
+      applyAvailable: true,
+      source,
+      target,
+      affected: { ...counts, budgets: 0 },
+      exactChanges: references.map((reference) => ({
+        kind: reference.kind,
+        id: reference.id,
+        beforeTagIds: reference.beforeTags,
+        afterTagIds: reference.afterTags
+      })),
+      sourceAfter: proposedCategory(source, patch),
+      ...preview,
+      operationId: operationIdForPreviewToken(preview.previewToken),
+      requiresConfirmation: true,
+      rollback:
+        "If a reference update or source retirement fails, the connector attempts concurrency-safe reverse updates. An incomplete reversal is journaled for manual review.",
+      note: "No data has been changed. Full reference discovery included transactions, reminders, reminder markers, and budgets."
+    };
+  }
+
+  async applyCategoryConsolidation(input: { previewToken: string; confirmed: true }) {
+    if (input.confirmed !== true) throw new Error("confirmed must be true after explicit approval");
+    const started = this.consolidationPreviews.begin(input.previewToken);
+    if (started.state === "applied") return { ...started.result, applied: false, alreadyApplied: true };
+    const plan = started.plan;
+    await this.sync(false);
+    const categories = await this.listTaxonomyCategories();
+    const source = requireCategory(categories, plan.source.id);
+    const target = requireCategory(categories, plan.target.id);
+    if (source.changed !== plan.source.changed || target.changed !== plan.target.changed) {
+      this.consolidationPreviews.reset(input.previewToken);
+      throw new Error("source or target category changed after preview; create a new preview");
+    }
+    const currentSnapshot = await this.fullCategoryReferenceSnapshot();
+    const currentReferences = referencesForConsolidation(currentSnapshot, source.id, target.id);
+    if (
+      currentSnapshot.budgets.some((budget) => budget.tag === source.id) ||
+      !sameConsolidationReferences(currentReferences, plan.references)
+    ) {
+      this.consolidationPreviews.reset(input.previewToken);
+      throw new Error("category references changed after preview; create a new preview");
+    }
+
+    const journalTargets: JournalTarget[] = [
+      ...plan.references.map((reference) => ({
+        id: `${reference.kind}:${reference.id}`,
+        beforeFingerprint: referenceFingerprint(reference.kind, reference.beforeTags),
+        expectedFingerprint: referenceFingerprint(reference.kind, reference.afterTags)
+      })),
+      {
+        id: `category:${source.id}`,
+        beforeFingerprint: consolidationCategoryFingerprint(source),
+        expectedFingerprint: consolidationCategoryFingerprint(
+          proposedCategory(source, plan.sourceRetirement.patch)
+        )
+      }
+    ];
+    const operation = await this.operationJournal.begin(
+      input.previewToken,
+      "category-consolidation",
+      journalTargets
+    );
+    await this.emitOperation(
+      "category-consolidation",
+      operation.operationId,
+      "write",
+      "started",
+      "apply_started"
+    );
+    const applied: Array<{ reference: CategoryReference; changed: number }> = [];
+    let sourceAppliedChanged: number | null = null;
+    try {
+      for (const reference of plan.references) {
+        await this.operationJournal.markWriteAttempt(operation.operationId);
+        const result = requireAppliedWrite(
+          await this.backend.call(consolidationUpdateTool(reference.kind), {
+            id: reference.id,
+            expectedChanged: reference.changed,
+            patch: { tag: reference.afterTags }
+          })
+        );
+        if (result.changed === null) throw new Error("ZenMoney did not return a reference concurrency version");
+        applied.push({ reference, changed: result.changed });
+      }
+      await this.operationJournal.markWriteAttempt(operation.operationId);
+      const retired = requireAppliedWrite(
+        await this.backend.call("tags_update", {
+          id: source.id,
+          expectedChanged: requireCategoryChanged(source),
+          patch: plan.sourceRetirement.patch
+        })
+      );
+      sourceAppliedChanged = retired.changed;
+      if (sourceAppliedChanged === null) throw new Error("ZenMoney did not return a category concurrency version");
+
+      await this.operationJournal.markVerifying(operation.operationId);
+      await this.emitOperation(
+        "category-consolidation",
+        operation.operationId,
+        "verify",
+        "started",
+        "verification_started"
+      );
+      await this.sync(false);
+      const verifiedSnapshot = await this.fullCategoryReferenceSnapshot();
+      if (
+        referencesForConsolidation(verifiedSnapshot, source.id, target.id).length > 0 ||
+        verifiedSnapshot.budgets.some((budget) => budget.tag === source.id)
+      ) {
+        throw new Error("ZenMoney did not confirm removal of every source category reference");
+      }
+      const verifiedSource = requireCategory(await this.listTaxonomyCategories(), source.id);
+      if (!categoryMatchesFields(verifiedSource, plan.sourceRetirement.patch)) {
+        throw new Error("ZenMoney did not confirm source category retirement");
+      }
+      const counts = consolidationCounts(plan.references);
+      const result = {
+        applied: true,
+        alreadyApplied: false,
+        verified: true,
+        operationId: operation.operationId,
+        affected: counts,
+        source: verifiedSource
+      };
+      await this.operationJournal.markCompleted(operation.operationId);
+      await this.emitOperation(
+        "category-consolidation",
+        operation.operationId,
+        "complete",
+        "succeeded",
+        "apply_verified"
+      );
+      this.consolidationPreviews.markApplied(input.previewToken, result);
+      return result;
+    } catch (error) {
+      const rollbackFailures = await this.rollbackCategoryConsolidation(
+        plan,
+        applied,
+        sourceAppliedChanged
+      );
+      if (rollbackFailures.length > 0) {
+        this.consolidationPreviews.markFailed(
+          input.previewToken,
+          "category consolidation requires manual review"
+        );
+        await this.operationJournal.markManualReview(operation.operationId, "rollback_incomplete");
+        await this.emitOperation(
+          "category-consolidation",
+          operation.operationId,
+          "complete",
+          "uncertain",
+          "rollback_incomplete"
+        );
+        throw new Error(
+          `category consolidation failed and rollback was incomplete (${rollbackFailures.length} exact references require review)`
+        );
+      }
+      this.consolidationPreviews.reset(input.previewToken);
+      await this.operationJournal.markCompensated(operation.operationId);
+      await this.emitOperation(
+        "category-consolidation",
+        operation.operationId,
+        "compensate",
+        "succeeded",
+        "rollback_verified"
+      );
+      const message = error instanceof Error ? error.message : "category consolidation failed";
+      throw new Error(`${message}; compensating rollback completed`);
+    }
+  }
+
   private async applyCategoryUpdatePlan(
     store: OperationPreviewStore<CategoryUpdatePlan, CategoryMutationResult>,
     input: { previewToken: string; confirmed: true },
@@ -530,6 +799,7 @@ export class ZenMoneyReceiptService {
       proposed: { tagIds: input.tagIds, categories: selected.map((category) => category!.title) },
       receiptMemory: await this.describeReceiptMemory(evidenceGroups),
       previewToken: signed.token,
+      operationId: operationIdForPreviewToken(signed.token),
       expiresAt: signed.expiresAt,
       requiresConfirmation: true,
       note: "No data has been changed. The token is bound to this exact transaction version and category list."
@@ -563,31 +833,50 @@ export class ZenMoneyReceiptService {
     if (current.changed !== preview.expectedChanged) {
       throw new Error("transaction changed after preview; review it and create a new preview");
     }
-
-    await this.backend.call("transactions_update", {
-      id: preview.transactionId,
-      expectedChanged: preview.expectedChanged,
-      patch: { tag: preview.tagIds }
-    });
-    await this.sync(false);
-    const updated = requireTransaction(
-      await this.backend.call("transactions_get", { id: preview.transactionId })
-    );
-    if (!sameIds(updated.tag, preview.tagIds)) {
-      throw new Error("ZenMoney did not confirm the requested category change");
+    const operation = await this.operationJournal.begin(input.previewToken, "receipt-category", [
+      {
+        id: current.id,
+        beforeFingerprint: transactionFingerprint(current),
+        expectedFingerprint: transactionFingerprint({ ...current, tag: preview.tagIds })
+      }
+    ]);
+    await this.emitOperation("receipt-category", operation.operationId, "write", "started", "apply_started");
+    try {
+      await this.operationJournal.markWriteAttempt(operation.operationId);
+      await this.backend.call("transactions_update", {
+        id: preview.transactionId,
+        expectedChanged: preview.expectedChanged,
+        patch: { tag: preview.tagIds }
+      });
+      await this.operationJournal.markVerifying(operation.operationId);
+      await this.emitOperation("receipt-category", operation.operationId, "verify", "started", "verification_started");
+      await this.sync(false);
+      const updated = requireTransaction(
+        await this.backend.call("transactions_get", { id: preview.transactionId })
+      );
+      if (!sameIds(updated.tag, preview.tagIds)) {
+        throw new Error("ZenMoney did not confirm the requested category change");
+      }
+      await this.operationJournal.markCompleted(operation.operationId);
+      await this.emitOperation("receipt-category", operation.operationId, "complete", "succeeded", "apply_verified");
+      return {
+        applied: true,
+        alreadyApplied: false,
+        verified: true,
+        operationId: operation.operationId,
+        transaction: updated,
+        receiptMemory: await this.recordReceiptMemory({
+          transactionIds: [updated.id],
+          receiptDate: updated.date,
+          instrument: updated.outcomeInstrument,
+          groups: preview.evidenceGroups
+        })
+      };
+    } catch (error) {
+      await this.operationJournal.markManualReview(operation.operationId, "category_apply_uncertain");
+      await this.emitOperation("receipt-category", operation.operationId, "complete", "uncertain", "manual_review");
+      throw error;
     }
-    return {
-      applied: true,
-      alreadyApplied: false,
-      verified: true,
-      transaction: updated,
-      receiptMemory: await this.recordReceiptMemory({
-        transactionIds: [updated.id],
-        receiptDate: updated.date,
-        instrument: updated.outcomeInstrument,
-        groups: preview.evidenceGroups
-      })
-    };
   }
 
   async previewReceiptReconciliation(input: {
@@ -682,6 +971,7 @@ export class ZenMoneyReceiptService {
       })),
       receiptMemory: await this.describeReceiptMemory(evidenceGroups),
       ...preview,
+      operationId: operationIdForPreviewToken(preview.previewToken),
       requiresConfirmation: true,
       rollback:
         "If a multi-step apply fails, the connector attempts to delete created split parts and restore every source amount/category before reporting failure.",
@@ -792,6 +1082,7 @@ export class ZenMoneyReceiptService {
       })),
       receiptMemory: await this.describeReceiptMemory(evidenceGroups),
       ...preview,
+      operationId: operationIdForPreviewToken(preview.previewToken),
       requiresConfirmation: true,
       rollback: "If one create fails, the connector attempts to delete every part created by this preview.",
       note: "No data has been changed."
@@ -811,6 +1102,31 @@ export class ZenMoneyReceiptService {
     }> = [];
     const createdIds: string[] = [];
     const uncertainSourceIds: string[] = [];
+    const journalTargets: JournalTarget[] = plan.allocations.flatMap((allocation) =>
+      allocation.parts.map((part, index) => ({
+        id: part.transactionId,
+        beforeFingerprint: index === 0 ? transactionFingerprint(allocation.source) : null,
+        expectedFingerprint: plannedTransactionFingerprint({
+          amount: part.amount,
+          accountId: allocation.source.outcomeAccount!,
+          instrument: allocation.source.outcomeInstrument!,
+          date: allocation.source.date!,
+          tagIds: part.tagIds
+        })
+      }))
+    );
+    const operation = await this.operationJournal.begin(
+      input.previewToken,
+      "receipt-reconciliation",
+      journalTargets
+    );
+    await this.emitOperation(
+      "receipt-reconciliation",
+      operation.operationId,
+      "write",
+      "started",
+      "apply_started"
+    );
 
     try {
       await this.sync(false);
@@ -831,6 +1147,7 @@ export class ZenMoneyReceiptService {
         ) {
           let applied: { id: string; changed: number | null };
           try {
+            await this.operationJournal.markWriteAttempt(operation.operationId);
             applied = requireAppliedWrite(
               await this.backend.call("transactions_update", {
                 id: allocation.source.id,
@@ -875,6 +1192,7 @@ export class ZenMoneyReceiptService {
             throw new Error(`planned split transaction id ${part.transactionId} already exists`);
           }
           createdIds.push(part.transactionId);
+          await this.operationJournal.markWriteAttempt(operation.operationId);
           await this.createExpenseRecord({
             transactionId: part.transactionId,
             accountId: allocation.source.outcomeAccount!,
@@ -889,6 +1207,14 @@ export class ZenMoneyReceiptService {
         }
       }
 
+      await this.operationJournal.markVerifying(operation.operationId);
+      await this.emitOperation(
+        "receipt-reconciliation",
+        operation.operationId,
+        "verify",
+        "started",
+        "verification_started"
+      );
       await this.sync(false);
       const transactions: ZenTransaction[] = [];
       for (const allocation of plan.allocations) {
@@ -913,6 +1239,7 @@ export class ZenMoneyReceiptService {
         receiptTotal: plan.receiptTotal,
         transactionIds: transactions.map((transaction) => transaction.id),
         transactions,
+        operationId: operation.operationId,
         receiptMemory: await this.recordReceiptMemory({
           transactionIds: transactions.map((transaction) => transaction.id),
           receiptDate: plan.allocations[0]?.source.date ?? null,
@@ -920,6 +1247,14 @@ export class ZenMoneyReceiptService {
           groups: plan.evidenceGroups
         })
       };
+      await this.operationJournal.markCompleted(operation.operationId);
+      await this.emitOperation(
+        "receipt-reconciliation",
+        operation.operationId,
+        "complete",
+        "succeeded",
+        "apply_verified"
+      );
       this.reconciliationPreviews.markApplied(input.previewToken, result);
       return result;
     } catch (error) {
@@ -931,9 +1266,25 @@ export class ZenMoneyReceiptService {
         const message =
           "receipt reconciliation failed and compensating rollback was incomplete; inspect the previewed transaction ids manually";
         this.reconciliationPreviews.markFailed(input.previewToken, message);
+        await this.operationJournal.markManualReview(operation.operationId, "rollback_incomplete");
+        await this.emitOperation(
+          "receipt-reconciliation",
+          operation.operationId,
+          "complete",
+          "uncertain",
+          "rollback_incomplete"
+        );
         throw new Error(`${message} (${rollbackFailures.length} rollback errors)`);
       }
       this.reconciliationPreviews.reset(input.previewToken);
+      await this.operationJournal.markCompensated(operation.operationId);
+      await this.emitOperation(
+        "receipt-reconciliation",
+        operation.operationId,
+        "compensate",
+        "succeeded",
+        "rollback_verified"
+      );
       const message = error instanceof Error ? error.message : "receipt reconciliation failed";
       throw new Error(`${message}; compensating rollback completed`);
     }
@@ -947,6 +1298,22 @@ export class ZenMoneyReceiptService {
     }
     const plan = started.plan;
     const createdIds: string[] = [];
+    const operation = await this.operationJournal.begin(
+      input.previewToken,
+      "receipt-create",
+      plan.parts.map((part) => ({
+        id: part.transactionId,
+        beforeFingerprint: null,
+        expectedFingerprint: plannedTransactionFingerprint({
+          amount: part.amount,
+          accountId: plan.accountId,
+          instrument: plan.instrument,
+          date: plan.date,
+          tagIds: part.tagIds
+        })
+      }))
+    );
+    await this.emitOperation("receipt-create", operation.operationId, "write", "started", "apply_started");
 
     try {
       const accounts = await this.listAccounts(false);
@@ -962,6 +1329,7 @@ export class ZenMoneyReceiptService {
           throw new Error(`planned receipt transaction id ${part.transactionId} already exists`);
         }
         createdIds.push(part.transactionId);
+        await this.operationJournal.markWriteAttempt(operation.operationId);
         await this.createExpenseRecord({
           transactionId: part.transactionId,
           accountId: plan.accountId,
@@ -975,6 +1343,8 @@ export class ZenMoneyReceiptService {
         });
       }
 
+      await this.operationJournal.markVerifying(operation.operationId);
+      await this.emitOperation("receipt-create", operation.operationId, "verify", "started", "verification_started");
       await this.sync(false);
       const transactions: ZenTransaction[] = [];
       for (const part of plan.parts) {
@@ -997,6 +1367,7 @@ export class ZenMoneyReceiptService {
         receiptTotal: plan.receiptTotal,
         transactionIds: transactions.map((transaction) => transaction.id),
         transactions,
+        operationId: operation.operationId,
         receiptMemory: await this.recordReceiptMemory({
           transactionIds: transactions.map((transaction) => transaction.id),
           receiptDate: plan.date,
@@ -1004,6 +1375,8 @@ export class ZenMoneyReceiptService {
           groups: plan.evidenceGroups
         })
       };
+      await this.operationJournal.markCompleted(operation.operationId);
+      await this.emitOperation("receipt-create", operation.operationId, "complete", "succeeded", "apply_verified");
       this.creationPreviews.markApplied(input.previewToken, result);
       return result;
     } catch (error) {
@@ -1012,9 +1385,13 @@ export class ZenMoneyReceiptService {
         const message =
           "new receipt creation failed and compensating rollback was incomplete; inspect the previewed transaction ids manually";
         this.creationPreviews.markFailed(input.previewToken, message);
+        await this.operationJournal.markManualReview(operation.operationId, "rollback_incomplete");
+        await this.emitOperation("receipt-create", operation.operationId, "complete", "uncertain", "rollback_incomplete");
         throw new Error(`${message} (${rollbackFailures.length} rollback errors)`);
       }
       this.creationPreviews.reset(input.previewToken);
+      await this.operationJournal.markCompensated(operation.operationId);
+      await this.emitOperation("receipt-create", operation.operationId, "compensate", "succeeded", "rollback_verified");
       const message = error instanceof Error ? error.message : "new receipt creation failed";
       throw new Error(`${message}; compensating rollback completed`);
     }
@@ -1188,6 +1565,148 @@ export class ZenMoneyReceiptService {
       failures.push(...appliedSources.map(({ allocation }) => allocation.source.id));
     }
     return [...new Set(failures)];
+  }
+
+  private async fullCategoryReferenceSnapshot(): Promise<FullCategoryReferenceSnapshot> {
+    return parseFullCategoryReferenceSnapshot(
+      await this.backend.call("receipt_full_reference_snapshot", {})
+    );
+  }
+
+  private async rollbackCategoryConsolidation(
+    plan: CategoryConsolidationPlan,
+    applied: Array<{ reference: CategoryReference; changed: number }>,
+    sourceAppliedChanged: number | null
+  ): Promise<string[]> {
+    const failures: string[] = [];
+    if (sourceAppliedChanged !== null) {
+      try {
+        requireAppliedWrite(
+          await this.backend.call("tags_update", {
+            id: plan.source.id,
+            expectedChanged: sourceAppliedChanged,
+            patch: {
+              showIncome: plan.source.showIncome,
+              showOutcome: plan.source.showOutcome,
+              budgetIncome: plan.source.budgetIncome,
+              budgetOutcome: plan.source.budgetOutcome
+            }
+          })
+        );
+      } catch {
+        failures.push(`category:${plan.source.id}`);
+      }
+    }
+    for (const item of [...applied].reverse()) {
+      try {
+        requireAppliedWrite(
+          await this.backend.call(consolidationUpdateTool(item.reference.kind), {
+            id: item.reference.id,
+            expectedChanged: item.changed,
+            patch: { tag: item.reference.beforeTags }
+          })
+        );
+      } catch {
+        failures.push(`${item.reference.kind}:${item.reference.id}`);
+      }
+    }
+    try {
+      await this.sync(false);
+      const snapshot = await this.fullCategoryReferenceSnapshot();
+      const byKind = consolidationReferenceMap(snapshot);
+      for (const reference of applied.map((item) => item.reference)) {
+        const current = byKind.get(`${reference.kind}:${reference.id}`);
+        if (!current || !sameTags(current.tag, reference.beforeTags)) {
+          failures.push(`${reference.kind}:${reference.id}`);
+        }
+      }
+      if (sourceAppliedChanged !== null) {
+        const source = requireCategory(await this.listTaxonomyCategories(), plan.source.id);
+        if (consolidationCategoryFingerprint(source) !== consolidationCategoryFingerprint(plan.source)) {
+          failures.push(`category:${plan.source.id}`);
+        }
+      }
+    } catch {
+      failures.push(...applied.map((item) => `${item.reference.kind}:${item.reference.id}`));
+      if (sourceAppliedChanged !== null) failures.push(`category:${plan.source.id}`);
+    }
+    return [...new Set(failures)];
+  }
+
+  async listOperationRecovery(limit = 20) {
+    return {
+      untrustedData: false,
+      records: await this.operationJournal.list(limit),
+      privacy:
+        "Journal listings omit target ids, plan fingerprints, preview tokens, amounts, categories, payees, and raw responses."
+    };
+  }
+
+  async inspectOperationRecovery(operationId: string) {
+    if (!/^op_[a-f0-9]{32}$/.test(operationId)) throw new Error("operation id is invalid");
+    const record = await this.operationJournal.get(operationId);
+    if (!record) throw new Error("operation journal record was not found or has expired");
+    const actual = new Map<string, string | null>();
+    await this.sync(false);
+    if (record.kind === "category-consolidation") {
+      const snapshot = await this.fullCategoryReferenceSnapshot();
+      const references = consolidationReferenceMap(snapshot);
+      const categories = new Map(
+        (await this.listTaxonomyCategories()).map((category) => [category.id, category])
+      );
+      for (const target of record.targets) {
+        if (target.id.startsWith("category:")) {
+          const categoryId = target.id.slice("category:".length);
+          actual.set(target.id, consolidationCategoryFingerprint(categories.get(categoryId) ?? null));
+          continue;
+        }
+        const reference = references.get(target.id);
+        actual.set(
+          target.id,
+          reference ? referenceFingerprint(reference.kind, reference.tag) : null
+        );
+      }
+    } else {
+      for (const target of record.targets) {
+        const transaction = projectTransaction(
+          await this.backend.call("transactions_get", { id: target.id })
+        );
+        actual.set(target.id, transactionFingerprint(transaction));
+      }
+    }
+    const classification = this.operationJournal.classify(record, actual);
+    return {
+      ...classification,
+      targetIds: classification.classification === "manual-review" ? record.targets.map((target) => target.id) : [],
+      privacy:
+        "Exact target ids are returned only for manual review; transaction values and one-way fingerprints are never returned."
+    };
+  }
+
+  private async emitOperation(
+    operationKind:
+      | "receipt-category"
+      | "receipt-reconciliation"
+      | "receipt-create"
+      | "category-consolidation",
+    operationId: string,
+    phase: "write" | "verify" | "compensate" | "complete",
+    outcome: "started" | "succeeded" | "uncertain",
+    code: string
+  ): Promise<void> {
+    try {
+      await this.events.emit({
+        name: "operation.phase",
+        component: operationKind === "category-consolidation" ? "taxonomy-operation" : "receipt-operation",
+        operationKind,
+        operationId,
+        phase,
+        outcome,
+        code
+      });
+    } catch {
+      // Diagnostic storage must never change financial operation behavior.
+    }
   }
 
   async categorySummary(input: { dateFrom: string; dateTo: string; limit?: number }) {
@@ -1409,6 +1928,56 @@ export class ZenMoneyReceiptService {
   async close(): Promise<void> {
     await this.backend.close();
   }
+}
+
+function consolidationCounts(references: CategoryReference[]) {
+  return {
+    transactions: references.filter((reference) => reference.kind === "transaction").length,
+    reminders: references.filter((reference) => reference.kind === "reminder").length,
+    reminderMarkers: references.filter((reference) => reference.kind === "reminder-marker").length
+  };
+}
+
+function consolidationUpdateTool(kind: ConsolidationReferenceKind): string {
+  if (kind === "transaction") return "transactions_update";
+  if (kind === "reminder") return "reminders_update";
+  return "reminder_markers_update";
+}
+
+function consolidationReferenceMap(snapshot: FullCategoryReferenceSnapshot) {
+  const result = new Map<
+    string,
+    { kind: ConsolidationReferenceKind; id: string; changed: number; tag: string[] }
+  >();
+  const add = (
+    kind: ConsolidationReferenceKind,
+    values: FullCategoryReferenceSnapshot["transactions"]
+  ) => {
+    for (const value of values) {
+      if (!value.deleted && value.state !== "deleted") {
+        result.set(`${kind}:${value.id}`, { kind, id: value.id, changed: value.changed, tag: value.tag });
+      }
+    }
+  };
+  add("transaction", snapshot.transactions);
+  add("reminder", snapshot.reminders);
+  add("reminder-marker", snapshot.reminderMarkers);
+  return result;
+}
+
+function sameConsolidationReferences(left: CategoryReference[], right: CategoryReference[]): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((reference, index) => {
+    const expected = right[index];
+    return (
+      expected !== undefined &&
+      reference.kind === expected.kind &&
+      reference.id === expected.id &&
+      reference.changed === expected.changed &&
+      sameTags(reference.beforeTags, expected.beforeTags) &&
+      sameTags(reference.afterTags, expected.afterTags)
+    );
+  });
 }
 
 function primaryCategory(tagIds: string[], byId: Map<string, ZenTag>): string | null {

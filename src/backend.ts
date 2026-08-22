@@ -2,9 +2,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { fileURLToPath } from "node:url";
 
-import { resolveCredential } from "./credentials.js";
+import { resolveCredential, type CredentialResult } from "./credentials.js";
 import { buildExpenseDiff } from "./direct-write.js";
+import { PrivacySafeEventStore } from "./observability.js";
 import type { Backend, JsonObject } from "./types.js";
+import { VERSION } from "./version.js";
 
 export function backendEnvironment(
   credential: string,
@@ -53,13 +55,24 @@ function parseToolResult(result: unknown): unknown {
 }
 
 export class ChildMcpBackend implements Backend {
-  private readonly client = new Client({ name: "zenmoney-receipts-wrapper", version: "0.2.0" });
+  private readonly client = new Client({ name: "zenmoney-receipts-wrapper", version: VERSION });
   private transport: StdioClientTransport | null = null;
   private accessToken: string | null = null;
   private operationTail: Promise<void> = Promise.resolve();
 
+  private readonly events: PrivacySafeEventStore;
+  private readonly credentialResolver: () => CredentialResult | Promise<CredentialResult>;
+
+  constructor(options: {
+    events?: PrivacySafeEventStore;
+    credentialResolver?: () => CredentialResult | Promise<CredentialResult>;
+  } = {}) {
+    this.events = options.events ?? new PrivacySafeEventStore();
+    this.credentialResolver = options.credentialResolver ?? (() => resolveCredential());
+  }
+
   async start(): Promise<void> {
-    const credential = resolveCredential();
+    const credential = await this.credentialResolver();
     if (!credential.token) {
       throw new Error(
         "ZenMoney access token is not configured. Set ZENMONEY_ACCESS_TOKEN or add the macOS Keychain item described in README.md."
@@ -90,11 +103,106 @@ export class ChildMcpBackend implements Backend {
     if (!this.transport) {
       throw new Error("ZenMoney backend is not connected");
     }
-    if (tool === "receipt_transactions_create") {
-      return this.createReceiptTransaction(input);
+    if (tool === "receipt_full_reference_snapshot") {
+      return this.fullReferenceSnapshot();
     }
-    const result = await this.client.callTool({ name: tool, arguments: input });
-    return parseToolResult(result);
+    const write = /(?:_create|_update|_delete)$/.test(tool) || tool === "receipt_transactions_create";
+    const startedAt = Date.now();
+    await this.safeEvent({
+      outcome: "started",
+      phase: write ? "write" : "read",
+      durationMs: 0,
+      code: write ? "backend_write" : "backend_read"
+    });
+    try {
+      const value =
+        tool === "receipt_transactions_create"
+          ? await this.createReceiptTransaction(input)
+          : parseToolResult(await this.client.callTool({ name: tool, arguments: input }));
+      await this.safeEvent({
+        outcome: "succeeded",
+        phase: write ? "write" : "read",
+        durationMs: Date.now() - startedAt,
+        code: write ? "backend_write" : "backend_read"
+      });
+      return value;
+    } catch (error) {
+      await this.safeEvent({
+        outcome: "failed",
+        phase: write ? "write" : "read",
+        durationMs: Date.now() - startedAt,
+        code: write ? "backend_write_failed" : "backend_read_failed"
+      });
+      throw error;
+    }
+  }
+
+  private async fullReferenceSnapshot(): Promise<unknown> {
+    if (!this.accessToken) throw new Error("ZenMoney backend credential is unavailable");
+    let response: Response;
+    try {
+      response = await fetch("https://api.zenmoney.ru/v8/diff/", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          currentClientTimestamp: Math.floor(Date.now() / 1000),
+          serverTimestamp: 0
+        }),
+        signal: AbortSignal.timeout(30_000)
+      });
+    } catch {
+      throw new Error("ZenMoney full reference discovery failed or timed out");
+    }
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new Error(`ZenMoney full reference discovery failed with status ${response.status}`);
+    }
+    const diff = asRecord(await response.json());
+    const bounded = (name: string, limit: number): Record<string, unknown>[] => {
+      const value = diff[name];
+      if (!Array.isArray(value)) return [];
+      if (value.length > limit) throw new Error(`ZenMoney ${name} reference set exceeds the safety limit`);
+      return value.map(asRecord);
+    };
+    const entity = (record: Record<string, unknown>) => ({
+      id: requireString(record.id, "id"),
+      changed: requireNumber(record.changed, "changed"),
+      tag: requireStringArray(record.tag ?? [], "tag"),
+      deleted: record.deleted === true,
+      state: typeof record.state === "string" ? record.state : null
+    });
+    return {
+      transactions: bounded("transaction", 50_000).map(entity),
+      reminders: bounded("reminder", 10_000).map(entity),
+      reminderMarkers: bounded("reminderMarker", 50_000).map(entity),
+      budgets: bounded("budget", 10_000).map((record) => ({
+        changed: requireNumber(record.changed, "budget.changed"),
+        user: typeof record.user === "number" || typeof record.user === "string" ? record.user : null,
+        date: typeof record.date === "string" ? record.date : null,
+        tag: typeof record.tag === "string" || record.tag === null ? record.tag : null
+      }))
+    };
+  }
+
+  private async safeEvent(input: {
+    outcome: "started" | "succeeded" | "failed";
+    phase: "read" | "write";
+    durationMs: number;
+    code: string;
+  }): Promise<void> {
+    try {
+      await this.events.emit({
+        name: "backend.call",
+        component: "backend",
+        operationKind: "none",
+        ...input
+      });
+    } catch {
+      // Diagnostics must never change the outcome of a ZenMoney operation.
+    }
   }
 
   private async createReceiptTransaction(input: JsonObject): Promise<unknown> {
@@ -224,12 +332,14 @@ export class LazyBackend implements Backend {
   private pending: Promise<ChildMcpBackend> | null = null;
   private active: ChildMcpBackend | null = null;
 
+  constructor(private readonly options: ConstructorParameters<typeof ChildMcpBackend>[0] = {}) {}
+
   private async get(): Promise<ChildMcpBackend> {
     if (this.active) {
       return this.active;
     }
     this.pending ??= (async () => {
-      const backend = new ChildMcpBackend();
+      const backend = new ChildMcpBackend(this.options);
       await backend.start();
       this.active = backend;
       return backend;

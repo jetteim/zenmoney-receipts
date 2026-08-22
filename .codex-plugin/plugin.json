@@ -1,6 +1,6 @@
 {
   "name": "zenmoney-receipts",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Safely manage ZenMoney receipts, spending taxonomy, and evidence-based insights.",
   "author": {
     "name": "Maxim Lee"
@@ -11,7 +11,7 @@
   "interface": {
     "displayName": "ZenMoney Receipts",
     "shortDescription": "Manage receipts and spending taxonomy safely.",
-    "longDescription": "Turns receipts into verified expenses, safely previews and applies category taxonomy changes, reviews category granularity, and finds evidence-based saving opportunities without persisting financial data.",
+    "longDescription": "Turns receipts into verified expenses, safely previews and applies category taxonomy changes, reviews category granularity, and finds evidence-based saving opportunities without persisting raw receipts or financial exports.",
     "developerName": "Maxim Lee",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],
@@ -19,6 +19,7 @@
       "Add this receipt to ZenMoney, one transaction per category.",
       "Suggest more or less granular ZenMoney categories.",
       "Implement this category plan after showing the exact preview.",
+      "Consolidate these categories safely and stop if budgets block a complete merge.",
       "Review my history and suggest realistic savings."
     ]
   },

@@ -10,13 +10,15 @@ Open the repository in an agent and say:
 
 The agent should select the first unblocked `Ready / Now` roadmap item, state its ID and safety envelope, implement it, verify it, and update the durable handoff files.
 
+If `Ready / Now` is empty, the agent should not invent work. It should report the first external gate that can now be satisfied, or ask for a new feature idea.
+
 ## Add an idea without implementing it
 
 Say:
 
 > Read AGENTS.md. Add “<idea>” to the roadmap. Do not implement it.
 
-The resulting entry must include an ID, outcome, acceptance evidence, dependencies, risks, and traceability links. Ideas remain in `Later / Ideas` until their dependencies and acceptance evidence are clear.
+The resulting entry must include an ID, outcome, acceptance evidence, dependencies, risks, and traceability links. Ideas remain unselected until their dependencies and acceptance evidence are clear.
 
 ## Before ending any implementation session
 

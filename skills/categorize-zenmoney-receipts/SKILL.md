@@ -21,6 +21,7 @@ description: >-
 - Never change an existing expense's account, date, merchant, payee, or transaction type.
 - Do not change amounts for foreign-currency expenses that carry an original-operation amount.
 - Do not claim success until the apply tool reports `verified: true`.
+- If an apply is interrupted or uncertain, inspect its `operationId` with `zenmoney_inspect_operation_recovery` before creating or applying any replacement plan.
 - Store receipt evidence only through the exact confirmed receipt preview. Never store raw receipt text, images, PDFs, merchants, brands, products, SKUs, or credentials.
 
 ## Interaction contract
@@ -52,7 +53,7 @@ description: >-
 8. Show the exact preview: affected existing IDs, old values, account, date, each proposed amount/category, created split IDs if any, the receipt-total equality, the exact local evidence groups and retention state, and that no write occurred. Visibly mark only entries returned in `suggestedFields` as suggested, including their reason and confidence. Do not describe suggested values as receipt-identified.
 9. Ask the user to explicitly confirm that exact preview.
 10. Only after confirmation, call the matching apply tool with the returned token and `confirmed: true`. Do not substitute a different path or allocation.
-11. Report the verified final IDs, amounts, categories, receipt total, and receipt-memory status. Inspect `receiptMemory.reviewReadiness` after every verified apply, including an already-applied category match. If `ready` is true, immediately follow the `$review-zenmoney-categories` read-only workflow for those candidates using current categories plus `zenmoney_receipt_memory_search`; do not ask before performing that read-only review and do not delay the financial success report. Taxonomy changes still require a separate exact preview and confirmation. If the token expired or a source changed, make a new preview instead of retrying the stale one.
+11. Report the verified final IDs, amounts, categories, receipt total, and receipt-memory status. Inspect `receiptMemory.reviewReadiness` after every verified apply, including an already-applied category match. If `ready` is true, immediately follow the `$review-zenmoney-categories` read-only workflow for those candidates using current categories plus `zenmoney_receipt_memory_search`; do not ask before performing that read-only review and do not delay the financial success report. Taxonomy changes still require a separate exact preview and confirmation. If the token expired or a source changed before apply, make a new preview. If apply started and its result is uncertain, inspect recovery instead of retrying.
 
 ## Receipt-informed taxonomy
 

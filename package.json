@@ -1,43 +1,61 @@
 {
   "name": "zenmoney-receipts",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Receipt-safe MCP server and OpenAI plugin for ZenMoney receipts, taxonomy, and spending insights.",
   "type": "module",
   "private": true,
   "license": "MIT",
-  "engines": { "node": ">=20.11" },
+  "engines": {
+    "node": ">=20.11"
+  },
   "bin": {
     "zenmoney-receipts": "dist/cli.js",
     "zenmoney-receipts-mcp": "dist/index.js"
   },
-  "files": ["dist/", "scripts/", "skills/", ".codex-plugin/", ".mcp.json", "docs/", "README.md", "AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", "LICENSE"],
+  "files": [
+    "dist/",
+    "scripts/",
+    "skills/",
+    ".codex-plugin/",
+    ".mcp.json",
+    "docs/",
+    "README.md",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "npm run typecheck && esbuild src/index.ts src/cli.ts src/backend.ts src/backend-entry.ts --bundle --packages=external --platform=node --target=node20 --format=esm --outdir=dist --banner:js=\"#!/usr/bin/env node\"",
+    "build": "npm run typecheck && esbuild src/index.ts src/cli.ts src/backend.ts src/backend-entry.ts src/hosted-entry.ts --bundle --packages=external --platform=node --target=node20 --format=esm --outdir=dist --banner:js=\"#!/usr/bin/env node\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke": "node scripts/smoke.mjs",
     "doctor": "npm run build --silent && node dist/cli.js doctor",
     "doctor:live": "npm run build --silent && node dist/cli.js doctor --live",
+    "start:hosted": "node dist/hosted-entry.js",
     "setup": "node scripts/install.mjs",
     "setup:plan": "node scripts/install.mjs --dry-run --json",
     "skills:install": "./scripts/install-skills.sh",
-    "chatgpt:plan": "node scripts/private-chatgpt.mjs plan --json",
-    "chatgpt:doctor": "node scripts/private-chatgpt.mjs doctor --json",
     "verify:repo": "node scripts/verify-repo.mjs",
     "test:live-readonly": "npm run build && node scripts/live-readonly.mjs",
     "test:live-insights": "npm run build && node scripts/live-insights.mjs",
     "test:e2e-live": "npm run build && node scripts/live-write-e2e.mjs",
-    "check": "npm run test && npm run build && npm run smoke && npm run verify:repo",
-    "ci": "npm run check",
+    "test:hosted-http": "ZENMONEY_HOSTED_HTTP_TEST=1 vitest run tests/hosted-http.integration.test.ts",
+    "eval:receipts": "node scripts/evaluate-receipts.mjs",
+    "check": "npm run test && npm run build && npm run smoke && npm run eval:receipts && npm run verify:repo",
+    "ci": "npm run check && npm run test:hosted-http",
     "prepack": "npm run check"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
     "@nonnname/zenmoney-mcp": "0.2.0",
+    "pg": "8.23.0",
     "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/node": "22.20.1",
+    "@types/pg": "8.23.1",
     "esbuild": "0.28.2",
     "typescript": "5.7.2",
     "vitest": "4.1.10"

@@ -1,78 +1,68 @@
 # Roadmap
 
-Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Ready / Now`.
+Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Ready / Now`. A feature is marked repository-complete separately from external deployment or live-verification gates.
 
 ## Product priorities
 
-1. Receipt → recognize exact categories/amounts → create one verified transaction per category with marked date/account suggestions when needed (`F-012` and `F-018`, complete).
-2. Review existing categories and retained narrow receipt evidence → suggest more or less granular grouping, then safely implement requested structural changes (`F-009`, `F-015`, and `F-017`, complete; bulk history merge deferred to `F-016`).
-3. Review granular history → suggest realistic savings with evidence (`F-013`, complete and read-only).
+1. Receipt → recognize exact categories/amounts → create one verified transaction per supported category, with marked date/account suggestions when needed.
+2. Review existing categories plus narrow retained receipt evidence → suggest more or less granular grouping → safely implement an explicitly approved structure.
+3. Review granular history → suggest realistic savings with bounded evidence and no writes.
 
 ## Ready / Now
 
-### F-014 — Hosted ChatGPT connector and publication path
+There is no unblocked repository implementation item. “Proceed” should select the first item whose external prerequisite has become available, or refine a newly requested feature.
 
-- Outcome: ChatGPT can use the receipt/category/savings workflows without the user's laptop, with a separately deployed connector suitable for eventual public distribution.
-- Acceptance evidence: hosted Streamable HTTP MCP; MCP OAuth 2.1 metadata/PKCE/token validation; owned ZenMoney OAuth client with encrypted per-user refresh storage; tenant-isolation and deletion tests; privacy/support policies; staging ChatGPT tool discovery; production publication checklist.
-- Production dependencies: ZenMoney application registration/approval, hosting/provider decision and budget, public privacy/terms/support contacts, F-005 crash-safe operations, and F-006 privacy-safe observability. `S-014A` is unblocked and must resolve these choices before implementation begins.
-- Risks: custody of financial credentials/data, multi-tenant isolation, API drift, billing, abuse/rate limits, incident response, and materially larger compliance scope.
-- First slice: `S-014A` write the hosted threat model, auth sequence, C4 deployment view, provider/cost decision, and staging plan without handling real user credentials.
-- Boundary: a remote private connector can remove the laptop dependency before public publication; distribution visibility and hosting are separate decisions.
+## Externally gated
 
-### F-005 — Crash-safe financial operations
+### F-014 — Operated hosted ChatGPT connector
 
-- Outcome: after a server restart or host crash, an authorized reconciliation/create operation can be classified as not started, completed, compensated, or requiring manual review without duplicating writes.
-- Acceptance evidence: persistent operation journal tests covering crash points; restart/idempotency integration test; migration/retention/security notes; opt-in live evidence only with fresh user authorization.
-- Dependencies: C-03 receipt operations; existing preview plan hashes and concurrency versions.
-- Risks: journal could contain financial metadata; minimize/redact fields and protect local permissions.
-- First slice: `S-005A` design and implement a local, permission-restricted operation receipt journal with deterministic recovery inspection.
+- Repository outcome: complete. Direct Streamable HTTP `/mcp`, protected-resource metadata, OAuth bearer validation, tenant-bound sessions, encrypted ZenMoney credentials, owned-client link/unlink lifecycle, Docker/Render deployment, policy templates, threat model, and publication checklist are implemented.
+- Remaining gates: choose an operator and budget; configure an external OAuth identity provider; obtain an owned ZenMoney OAuth client and verify its current PKCE/refresh/revocation contract; publish real privacy/terms/support contacts; deploy staging; complete MCP Inspector and private ChatGPT discovery; establish incident response and operator telemetry.
+- Evidence needed to close deployment: hosted health/auth/discovery logs, tenant isolation tests against staging, one freshly authorized live link/read, and a human-recorded ChatGPT tool-discovery result.
 
-### F-006 — Privacy-safe observability and support bundle
+### F-007 — Live ZenMoney OAuth compatibility
 
-- Outcome: operators can diagnose startup, tunnel, backend, and mutation-phase failures without exposing credentials or financial payloads.
-- Acceptance evidence: structured event schema, redaction/adversarial tests, bounded support-bundle command, troubleshooting guide.
-- Dependencies: F-005 operation phases.
-- Risks: logs become a data-exfiltration path unless allowlisted.
+- Repository outcome: encrypted per-tenant authorization, refresh, revocation, relinking, S256 PKCE, one-time state, and tests are complete.
+- Blocker: ZenMoney application registration/approval and authoritative live confirmation of its current OAuth contract.
+- Rule: do not silently remove PKCE or share a personal access token across tenants.
 
-## Next
+### F-016B — Budget-aware category consolidation
 
-### F-016 — Crash-safe category consolidation
+- Repository outcome: complete for transactions, reminders, and reminder markers. The connector performs complete-reference discovery, exact preview, durable journaling, stale-reference checks, source retirement, verification, and concurrency-safe compensation.
+- Blocker: the pinned ZenMoney backend exposes budgets read-only and the public API documentation does not establish safe move/delete semantics.
+- Current behavior: if a source category has any budget reference, preview returns `applyAvailable: false` and no apply token. Clear or move the budget in ZenMoney, then create a fresh preview.
+- Evidence needed for budget support: authoritative schema/semantics, fixture tests, restart/conflict tests, and separately authorized live create/migrate/cleanup evidence.
 
-- Outcome: merge one source category into a target across all transaction, reminder, and budget references, then retire or remove the empty source without partial migration.
-- Acceptance evidence: complete-reference discovery; durable journal/restart tests; optimistic-concurrency conflict tests; exact preview with affected counts; compensation/manual-review states; separately authorized synthetic live create/merge/cleanup evidence.
-- Dependencies: `F-005` persistent operation journal and authoritative confirmation of ZenMoney reminder/budget deletion semantics.
-- Risks: incomplete history bounds, concurrent edits, invisible reminder/budget references, and destructive source deletion.
+### F-014P — Public distribution
 
-### F-007 — ZenMoney OAuth lifecycle
-
-- Outcome: owned OAuth client flow supports authorization, refresh, revocation, and relinking without manual token replacement.
-- Acceptance evidence: registered ZenMoney client, PKCE/state tests where supported, encrypted refresh storage, expiration/revocation tests.
-- Blocker: ZenMoney application registration/approval and authoritative confirmation of the current OAuth contract.
-
-### F-008 — Receipt extraction evaluation pack
-
-- Outcome: host agents reliably produce the structured receipt facts needed by the MCP across photos, PDFs, currencies, discounts, and mixed-category receipts.
-- Acceptance evidence: privacy-safe synthetic corpus, host-neutral prompt contract, precision/ambiguity metrics, regression runner.
-- Dependency: no raw user receipts in source control.
+- Optional future outcome: publish the already hosted connector beyond a private ChatGPT setup.
+- Dependencies: every `F-014` gate plus production privacy/terms/support URLs, abuse controls, deletion process, service ownership, SLOs, incident response, and OpenAI review requirements current at submission time.
+- Boundary: public discoverability is not required for the user's private hosted setup.
 
 ## Completed
 
-- `F-001` durable ephemeral-session handoff (`AGENTS.md` plus project status/roadmap/decisions/traceability).
-- `F-002` agent-safe installer, secure macOS auth helper, structured doctor/schema, idempotent host registration.
-- `F-003` private ChatGPT tunnel plan/init/doctor/run tooling and checksum-verified official client installer.
-- `F-004` CI, dependency updates, security/contribution policy, documentation structure, and repository validation baseline.
+- `F-001` durable ephemeral-session handoff.
+- `F-002` agent-safe installer, secure macOS auth helper, structured doctor/schema, and idempotent host registration.
+- `F-003` retired: laptop tunnel tooling was removed by product decision; direct hosted HTTP supersedes it.
+- `F-004` CI, dependency/security/documentation policy, and repository validation baseline.
+- `F-005` permission-restricted minimal crash journal, deterministic operation IDs, restart classification, and recovery inspection.
+- `F-006` allowlisted bounded operational events, support bundle, doctor checks, and troubleshooting guide.
+- `F-007` repository OAuth lifecycle; live provider compatibility remains externally gated above.
+- `F-008` host-neutral extraction contract plus ten-case synthetic regression corpus and metrics runner. It validates contract handling, not OCR/model accuracy.
+- `F-009` read-only category granularity review.
 - `F-010` receipt match/category-only flow.
-- `F-011` existing-expense reconciliation and exact split.
-- `F-012` missing-receipt creation with cleanup-tested live E2E and a separately confirmed live single-category receipt operation on 2026-08-16.
-- `F-009` read-only category granularity review with instrument-safe grouping rules.
-- `F-013` bounded per-instrument spending insights and evidence-based savings workflow.
-- `F-015` bounded taxonomy create, rename, reparent, behavior, restore, and retirement preview/apply flows; confirmed live create/update/transaction-category evidence recorded on 2026-08-15, with retirement and restore still live-unverified.
-- `F-018` fast missing-field receipt previews: host-local-today date suggestion, bounded semantic/history account recommendation, and exact `suggestedFields` provenance labels without weakening confirmation.
-- `F-017` opt-in local receipt evidence memory: atomic permission-restricted bounded storage, 180-day default retention, inspect/delete/purge controls, verified-write idempotency, narrow-purpose validation, and automatic read-only category-review readiness after three distinct receipts.
+- `F-011` exact existing-expense reconciliation/split.
+- `F-012` missing-receipt creation with verified cleanup-tested E2E.
+- `F-013` bounded per-instrument spending insights and savings workflow.
+- `F-014` repository-hosted foundation; actual operation remains externally gated above.
+- `F-015` bounded taxonomy create/update/retire flows.
+- `F-016` safe no-budget category consolidation; budget support remains `F-016B`.
+- `F-017` opt-in, bounded, sanitized receipt-evidence memory and automatic read-only review readiness.
+- `F-018` fast marked missing-date/account suggestions.
 
-## Later / Ideas
+## Dispositioned ideas
 
-- Cross-platform OS credential-store adapters.
-- Optional supervised tunnel service with explicit local lifecycle controls.
-- Merchant/category learning based on user-confirmed outcomes, with an inspectable local model and deletion controls.
-- Category visual customization (icon, picture, and color) after portable validation and preview rendering exist.
+- Cross-platform credentials: local environment injection works on every supported platform; native OS adapters remain a contribution opportunity, not a current user blocker. Hosted mode uses encrypted tenant storage.
+- Supervised tunnel: removed and declined; no active roadmap item may reintroduce it without a new decision.
+- Merchant/category learning: not retained because merchant/product storage conflicts with the current minimal-data boundary. Confirmed narrow-purpose receipt memory supplies the safe learning signal instead.
+- Category icon/picture/color: deferred until ZenMoney exposes a portable, documented writable contract and preview rendering can be verified.

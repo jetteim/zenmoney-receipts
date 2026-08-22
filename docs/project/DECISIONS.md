@@ -2,15 +2,15 @@
 
 ## D-001 — Private connection, public source
 
-Decision: distribute source for cloning while every ZenMoney and ChatGPT connection remains private to the installing user. Do not build or advertise a public GPT/multi-user hosted connector.
+Decision: distribute source for cloning while every ZenMoney connection remains private to the installing user. Public discoverability is optional and is not needed for a private hosted ChatGPT connection.
 
 Reason: this matches the intended personal setup and avoids central custody of financial credentials/data.
 
-## D-002 — Local stdio plus OpenAI Secure MCP Tunnel
+## D-002 — Local stdio plus OpenAI Secure MCP Tunnel (retired)
 
 Decision: Codex/Claude use local stdio. ChatGPT uses an outbound-only private tunnel to the same stdio server.
 
-Consequences: no inbound port/public server is needed; the local machine and tunnel process must remain online; ChatGPT setup requires separate organization/workspace permissions.
+Status: superseded by D-007 and D-011. All repository tunnel tooling and active instructions were removed. This entry is retained only as decision history.
 
 ## D-003 — Human-mediated credential handoff
 
@@ -48,7 +48,7 @@ Decision: expose explicit preview/apply pairs for category creation, allowlisted
 
 Reason: explicit user demand now exists, and the pinned backend provides optimistic-concurrency tag writes. ZenMoney tags support one-level parents and visibility/budget fields but no archive field. Retirement therefore sets all income/expense/budget selection flags to false while preserving IDs and historical references.
 
-Consequences: agents may rename, reparent, restore, or retire only after showing an exact preview and receiving confirmation. Hard deletion and bulk historical consolidation remain excluded until `F-005` and `F-016` cover durable migration and every reference type.
+Consequences: agents may rename, reparent, restore, or retire only after showing an exact preview and receiving confirmation. Category consolidation is now available only through the dedicated journaled workflow described by D-015; generic deletion remains prohibited.
 
 ## D-009 — Suggest missing receipt date/account inside the preview
 
@@ -69,3 +69,43 @@ Decision: trigger read-only category review readiness after the same normalized 
 Reason: transaction-level `Groceries` is too coarse to discover durable receipt-line groupings across ephemeral sessions, while storing artifacts or raw OCR creates unnecessary privacy and injection risk.
 
 Consequences: the local file can still reveal habits and is not application-encrypted; the single-user release relies on OS account/disk protection and explicit retention/deletion. Hosted or multi-user storage must add encryption and tenant isolation. Memory failure never compensates or rolls back a ZenMoney operation that already verified.
+
+## D-011 — Direct hosted HTTP, never a laptop tunnel
+
+Decision: remote ChatGPT access uses a separately deployed Streamable HTTP MCP resource server at `/mcp`. Local Codex/Claude continue to use stdio. The repository contains no tunnel installer, runtime manager, or tunnel setup path.
+
+Decision: the initial deployment profile is a paid single-instance Render Docker service with a persistent encrypted disk. An external OAuth authorization server authenticates MCP clients; the connector verifies bearer tokens and binds every MCP session to the authenticated subject. Public listing is a later, separate decision.
+
+Consequences: a deployed private connector works while the laptop is off. The operator owns service availability, cost, policy, deletion, secrets, monitoring, and incident response. Disk-backed state and in-memory sessions prohibit horizontal scaling until shared state/session routing is designed.
+
+## D-012 — Minimal persistent operation receipts
+
+Decision: persist a deterministic operation ID, phase, write-attempt count, target IDs, and one-way plan/before/expected fingerprints before and during supported multi-step writes. Never persist preview tokens, amounts, category names, receipt text, credentials, or raw ZenMoney responses.
+
+Consequences: after restart the user can list privacy-safe records and explicitly inspect one against current ZenMoney state. The connector classifies it as not started, completed, compensated, or manual review instead of blindly replaying a write. Journal retention is bounded to 30 days and 200 records with private permissions.
+
+## D-013 — Allowlisted support diagnostics
+
+Decision: operational events use a closed schema of component, phase, outcome, operation kind, one-way operation reference, duration, and allowlisted code. The support bundle includes runtime and bounded status only; it excludes paths, IDs, amounts, labels, receipt text, tenant subjects, tokens, and raw errors.
+
+Consequences: the local doctor can detect corrupt recovery/event stores without making support logs a financial-data export. This is not a substitute for a hosted telemetry backend or SLO program.
+
+## D-014 — Hosted OAuth custody
+
+Decision: hosted MCP client authentication and ZenMoney authorization are distinct boundaries. The MCP resource server validates introspected OAuth tokens (`issuer`, `audience`, `subject`, `scope`, expiration). Each subject receives a separate AES-256-GCM ZenMoney credential envelope and HMAC-derived storage namespace. Link state is one-time, short-lived, and S256-PKCE-bound; unlink is exact-previewed and attempts upstream revocation before local deletion.
+
+Consequences: deployment must stop if the owned ZenMoney client cannot support the verified flow; it may not downgrade to shared personal credentials. The master key derives separate encryption and lookup keys and requires deliberate envelope migration when rotated. Ordinary unlink removes only the credential; a separate destructive preview is required to revoke/unlink and permanently delete the authenticated tenant's connector state.
+
+## D-015 — Fail-closed category consolidation
+
+Decision: category consolidation is a dedicated exact workflow, not generic patch/delete. It discovers all transactions, reminders, reminder markers, and budgets from a full reference snapshot; migrates supported references; retires the source last; re-reads and verifies; and uses the persistent journal plus concurrency-safe compensation.
+
+Decision: any source budget reference blocks the preview from producing an apply token because authoritative budget move/delete semantics are unavailable in the pinned backend/current documentation.
+
+Consequences: the connector never produces an incorrect partial merge. The user can clear or move source budgets in ZenMoney and request a fresh preview.
+
+## D-016 — Synthetic extraction contract, honest accuracy boundary
+
+Decision: keep a source-controlled, fully synthetic receipt-facts corpus spanning image/PDF shapes, discounts, currencies, ambiguous/partial input, refunds, tax/tip, and multiple totals. The deterministic runner measures contract parsing and ambiguity behavior.
+
+Consequences: the pack prevents integration regressions without committing user receipts. It must never be presented as proof of OCR or model accuracy; such a claim needs a separately governed representative evaluation set and named host model/version.

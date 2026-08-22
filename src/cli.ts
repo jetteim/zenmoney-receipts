@@ -11,6 +11,9 @@ import { credentialStatus } from "./credentials.js";
 import { createServer } from "./server.js";
 import { ZenMoneyReceiptService } from "./service.js";
 import { ReceiptMemoryController } from "./receipt-memory.js";
+import { buildSupportBundle } from "./support-bundle.js";
+import { OperationJournal } from "./operation-journal.js";
+import { PrivacySafeEventStore } from "./observability.js";
 import type { Backend } from "./types.js";
 import { VERSION } from "./version.js";
 
@@ -109,18 +112,6 @@ function codexCheck(): Check {
   }
 }
 
-function tunnelCheck(): Check {
-  const result = commandResult("tunnel-client", ["--version"]);
-  return result.ok
-    ? { id: "host.chatgpt-tunnel", status: "pass", detail: result.stdout || "tunnel-client is installed." }
-    : {
-        id: "host.chatgpt-tunnel",
-        status: "warn",
-        detail: "OpenAI tunnel-client is not on PATH.",
-        remediation: "Follow docs/how-to/private-chatgpt.md; this is required only for private ChatGPT use."
-      };
-}
-
 async function receiptMemoryCheck(): Promise<Check> {
   const status = await new ReceiptMemoryController().status();
   if (status.corrupt) {
@@ -148,6 +139,43 @@ async function receiptMemoryCheck(): Promise<Check> {
         detail: `Disabled; no new receipt evidence will be retained. Data location: ${status.dataLocation}`,
         remediation: "Run `zenmoney-receipts memory enable`, inspect the preview, then rerun with --confirm."
       };
+}
+
+async function operationalStorageChecks(): Promise<Check[]> {
+  try {
+    const [records, events] = await Promise.all([
+      new OperationJournal().list(1),
+      new PrivacySafeEventStore().status()
+    ]);
+    return [
+      {
+        id: "storage.operation-journal",
+        status: "pass",
+        detail: `Crash-recovery journal is valid; ${records.length > 0 ? "recent metadata exists" : "no recent metadata"}.`
+      },
+      {
+        id: "observability.events",
+        status: events.available ? "pass" : "fail",
+        detail: events.available
+          ? `Privacy-safe event store is valid with ${events.eventCount} bounded events.`
+          : "Privacy-safe event storage failed validation.",
+        ...(events.available
+          ? {}
+          : {
+              remediation: "Run `zenmoney-receipts support-bundle` and follow docs/how-to/troubleshoot.md."
+            })
+      }
+    ];
+  } catch {
+    return [
+      {
+        id: "storage.operation-journal",
+        status: "fail",
+        detail: "Crash-recovery or privacy-safe event storage failed validation.",
+        remediation: "Run `zenmoney-receipts support-bundle` and follow docs/how-to/troubleshoot.md."
+      }
+    ];
+  }
 }
 
 async function liveCheck(): Promise<Check> {
@@ -184,8 +212,8 @@ async function doctor(live: boolean): Promise<number> {
     } satisfies Check,
     credentialCheck(),
     codexCheck(),
-    tunnelCheck(),
-    await receiptMemoryCheck()
+    await receiptMemoryCheck(),
+    ...(await operationalStorageChecks())
   ];
   if (live) checks.push(await liveCheck());
   const ok = checks.every((check) => check.status !== "fail");
@@ -340,11 +368,16 @@ async function main(): Promise<number> {
   if (command === "doctor") return doctor(args.includes("--live"));
   if (command === "schema") return schema();
   if (command === "memory") return memory(args);
+  if (command === "support-bundle") {
+    if (args.length > 0) throw new Error("support-bundle takes no arguments");
+    output({ schemaVersion: "1", command: "support-bundle", ok: true, bundle: await buildSupportBundle() });
+    return 0;
+  }
   output({
     schemaVersion: "1",
     command: command ?? "help",
     ok: false,
-    error: "Usage: zenmoney-receipts <doctor [--live] | schema | memory ...>"
+    error: "Usage: zenmoney-receipts <doctor [--live] | schema | support-bundle | memory ...>"
   });
   return 64;
 }

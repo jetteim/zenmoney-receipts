@@ -91,7 +91,13 @@ Review remains read-only by default. To implement the plan, say:
 
 > Apply the category plan safely.
 
-The assistant maps each approved change to an exact create, update, or retirement preview. Check the names, parents, and visibility/budget flags, then confirm the previews. Retirement preserves historical transaction references. ZenMoney tags do not support archive semantics, and this connector does not hard-delete categories or bulk-merge their histories.
+The assistant maps each approved change to an exact create, update, retirement, or consolidation preview. Check names, parents, behavior flags, and consolidation reference counts, then confirm the previews. Retirement preserves historical references. Consolidation can migrate complete transaction/reminder/reminder-marker references, but it returns no apply token when the source has a budget reference. Move or clear that budget in ZenMoney and request a fresh preview; never accept a partial merge. The connector does not hard-delete categories.
+
+If any confirmed receipt or consolidation apply is interrupted, start the next session with:
+
+> Inspect recent ZenMoney operation recovery. Do not retry or change anything.
+
+The assistant first lists minimal records and re-syncs the exact selected operation. A `completed` result must not be replayed; `manual-review` requires inspecting the returned target IDs before deciding what to do.
 
 ## Find saving opportunities
 
@@ -129,7 +135,8 @@ It should not ask which tools to call, whether to synchronize, whether to list c
 | Receipt-memory status/search/get | Local read-only; labels are untrusted and instrument totals remain separate. |
 | Preview category/reconciliation/new receipt | Validates and returns exact plan; no write. |
 | Enable/disable/delete/purge receipt memory | Exact local preview/confirmation; never changes ZenMoney. |
-| Preview category create/update/retirement | Validates hierarchy, behavior, and concurrency; no write. |
+| Preview category create/update/retirement/consolidation | Validates hierarchy, references, behavior, and concurrency; no write. |
+| List/inspect operation recovery | Read-only restart classification; target IDs are hidden unless manual review is required. |
 | Apply a preview | Requires your explicit confirmation for that preview. |
 | Generic transaction update/delete | Not exposed. |
 | Category create/rename/reparent/restore/retire | Preview/confirm only; post-write verification required. |

@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: zenmoney-receipts
+    runtime: docker
+    plan: starter
+    healthCheckPath: /healthz
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: ZENMONEY_HOSTED_DATA_DIR
+        value: /app/data
+      - key: ZENMONEY_HOSTED_PUBLIC_ORIGIN
+        sync: false
+      - key: ZENMONEY_HOSTED_ALLOWED_ORIGINS
+        sync: false
+      - key: ZENMONEY_HOSTED_MASTER_KEY
+        sync: false
+      - key: ZENMONEY_HOSTED_OAUTH_ISSUER
+        sync: false
+      - key: ZENMONEY_HOSTED_OAUTH_INTROSPECTION_URL
+        sync: false
+      - key: ZENMONEY_HOSTED_OAUTH_INTROSPECTION_CLIENT_ID
+        sync: false
+      - key: ZENMONEY_HOSTED_OAUTH_INTROSPECTION_CLIENT_SECRET
+        sync: false
+      - key: ZENMONEY_HOSTED_OAUTH_SCOPES
+        value: mcp:tools
+      - key: ZENMONEY_OAUTH_AUTHORIZATION_URL
+        sync: false
+      - key: ZENMONEY_OAUTH_TOKEN_URL
+        sync: false
+      - key: ZENMONEY_OAUTH_REVOCATION_URL
+        sync: false
+      - key: ZENMONEY_OAUTH_CLIENT_ID
+        sync: false
+      - key: ZENMONEY_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: ZENMONEY_OAUTH_SCOPES
+        sync: false
+    disk:
+      name: private-state
+      mountPath: /app/data
+      sizeGB: 1

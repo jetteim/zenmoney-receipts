@@ -5,7 +5,7 @@ export const KEYCHAIN_SERVICE = "zenmoney-receipts";
 
 export interface CredentialResult {
   token: string | null;
-  source: "environment" | "macos-keychain" | "missing";
+  source: "environment" | "macos-keychain" | "hosted-encrypted" | "missing";
 }
 
 export function resolveCredential(): CredentialResult {

@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { ZenMoneyReceiptService } from "./service.js";
+import type { HostedOAuthTools } from "./hosted-oauth-tools.js";
 import type { ReceiptFacts } from "./types.js";
 import { VERSION } from "./version.js";
 
@@ -85,7 +86,9 @@ export const SERVER_INSTRUCTIONS = [
   "For a mixed receipt, allocate parts only when receipt evidence supports the amounts; otherwise ask the user or use a user-approved whole-transaction category.",
   "When receipt memory is enabled, include narrow approved evidenceGroups in the receipt preview: use durable leaf purposes such as Fresh fruit, Fresh vegetables, or Herbs, never broad labels such as Produce, Groceries, Food, Other, brands, SKUs, or raw receipt text. The exact groups must be visible in the preview. After every verified receipt apply, inspect receiptMemory.reviewReadiness. If ready is true, immediately run a read-only category review using the bounded local evidence and current category structure; recommend changes but never mutate taxonomy without a separate exact preview and confirmation.",
   "After confirmation, apply the exact preview rather than abandoning an authorized partial or full result. Report success only when verified is true.",
-  "The connector may internally compensate a failed multi-step operation, but it never exposes arbitrary deletion. Category retirement preserves historical references; do not describe it as deletion or history migration.",
+  "If an apply is interrupted or its result is uncertain, use the returned operationId with operation recovery inspection before creating any replacement preview. Never repeat a write whose recovery classification is completed or manual-review.",
+  "For a requested category merge, use the dedicated consolidation preview. It migrates complete transaction, reminder, and reminder-marker references and retires the source only after confirmation. If the preview reports source budgets, do not apply or propose a partial merge; ask the user to move or clear those budgets in ZenMoney, then preview again.",
+  "The connector may internally compensate a failed multi-step operation, but it never exposes arbitrary deletion. Category retirement preserves historical references; describe consolidation as an exact verified reference migration, never deletion.",
   "Never add totals from different outcomeInstrument values.",
   "For savings advice, use the spending-insights tool as evidence, keep instruments separate, distinguish facts from suggestions, and do not label spending discretionary without user context."
 ].join(" ");
@@ -123,7 +126,7 @@ async function handled(work: () => Promise<unknown> | unknown) {
   }
 }
 
-export function createServer(service: ZenMoneyReceiptService): McpServer {
+export function createServer(service: ZenMoneyReceiptService, hostedOAuth?: HostedOAuthTools): McpServer {
   const server = new McpServer(
     { name: "zenmoney-receipts", version: VERSION },
     {
@@ -139,7 +142,7 @@ export function createServer(service: ZenMoneyReceiptService): McpServer {
       inputSchema: {},
       annotations: { ...readAnnotations, openWorldHint: false }
     },
-    async () => handled(() => service.status())
+    async () => handled(() => hostedOAuth ? hostedOAuth.connectionStatus() : service.status())
   );
 
   server.registerTool(
@@ -151,6 +154,119 @@ export function createServer(service: ZenMoneyReceiptService): McpServer {
       annotations: readAnnotations
     },
     async ({ full }) => handled(() => service.sync(full))
+  );
+
+  if (hostedOAuth) {
+    server.registerTool(
+      "zenmoney_oauth_status",
+      {
+        title: "ZenMoney link status",
+        description: "Check whether the current hosted tenant has an encrypted ZenMoney OAuth link.",
+        inputSchema: {},
+        annotations: localReadAnnotations
+      },
+      async () => handled(() => hostedOAuth.status())
+    );
+    server.registerTool(
+      "zenmoney_begin_oauth_link",
+      {
+        title: "Begin ZenMoney authorization",
+        description:
+          "Create a short-lived PKCE authorization URL for the current hosted tenant. This does not grant access until the user completes ZenMoney consent.",
+        inputSchema: {},
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: true
+        }
+      },
+      async () => handled(() => hostedOAuth.begin())
+    );
+    server.registerTool(
+      "zenmoney_preview_oauth_unlink",
+      {
+        title: "Preview ZenMoney unlink",
+        description: "Preview removal of the current tenant's encrypted ZenMoney OAuth credential.",
+        inputSchema: {},
+        annotations: localReadAnnotations
+      },
+      async () => handled(() => hostedOAuth.previewUnlink())
+    );
+    server.registerTool(
+      "zenmoney_apply_oauth_unlink",
+      {
+        title: "Apply confirmed ZenMoney unlink",
+        description: "Remove only the exact current tenant link encoded by a fresh preview.",
+        inputSchema: {
+          previewToken: z.string().min(20).max(256),
+          confirmed: z.literal(true)
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: true
+        }
+      },
+      async (input) => handled(() => hostedOAuth.applyUnlink(input))
+    );
+    server.registerTool(
+      "zenmoney_preview_hosted_data_deletion",
+      {
+        title: "Preview hosted tenant-data deletion",
+        description:
+          "Preview permanent deletion of the current tenant's encrypted ZenMoney link, receipt memory, recovery journal, and operational events. ZenMoney financial data is not deleted.",
+        inputSchema: {},
+        annotations: localReadAnnotations
+      },
+      async () => handled(() => hostedOAuth.previewDataDeletion())
+    );
+    server.registerTool(
+      "zenmoney_apply_hosted_data_deletion",
+      {
+        title: "Apply hosted tenant-data deletion",
+        description:
+          "After exact confirmation, revoke/unlink ZenMoney and permanently delete only the authenticated tenant's hosted connector state.",
+        inputSchema: {
+          previewToken: z.string().min(20).max(256),
+          confirmed: z.literal(true)
+        },
+        annotations: {
+          readOnlyHint: false,
+          destructiveHint: true,
+          idempotentHint: true,
+          openWorldHint: true
+        }
+      },
+      async (input) => handled(() => hostedOAuth.applyDataDeletion(input))
+    );
+  }
+
+  server.registerTool(
+    "zenmoney_list_operation_recovery",
+    {
+      title: "List recovery records",
+      description:
+        "List bounded crash-recovery metadata for recent receipt operations without returning target ids or financial values.",
+      inputSchema: { limit: z.number().int().min(1).max(50).default(20) },
+      annotations: localReadAnnotations
+    },
+    async ({ limit }) => handled(() => service.listOperationRecovery(limit))
+  );
+
+  server.registerTool(
+    "zenmoney_inspect_operation_recovery",
+    {
+      title: "Inspect interrupted operation",
+      description:
+        "Re-sync and classify one journaled receipt operation as not started, completed, compensated, or requiring manual review. Makes no write.",
+      inputSchema: {
+        operationId: z.string().regex(/^op_[a-f0-9]{32}$/, "use the exact operationId from the preview")
+      },
+      annotations: readAnnotations
+    },
+    async ({ operationId }) => handled(() => service.inspectOperationRecovery(operationId))
   );
 
   server.registerTool(
@@ -287,6 +403,41 @@ export function createServer(service: ZenMoneyReceiptService): McpServer {
       }
     },
     async (input) => handled(() => service.applyCategoryRetirement(input))
+  );
+
+  server.registerTool(
+    "zenmoney_preview_category_consolidation",
+    {
+      title: "Preview category consolidation",
+      description:
+        "Run complete read-only reference discovery, then preview moving one leaf category's transactions, reminders, and reminder markers to a target and retiring the empty source. Refuses any source budget reference because current budget mutation semantics are not authoritative.",
+      inputSchema: {
+        sourceCategoryId: resourceId,
+        targetCategoryId: resourceId
+      },
+      annotations: readAnnotations
+    },
+    async (input) => handled(() => service.previewCategoryConsolidation(input))
+  );
+
+  server.registerTool(
+    "zenmoney_apply_category_consolidation",
+    {
+      title: "Apply confirmed category consolidation",
+      description:
+        "Apply only a fresh exact all-reference consolidation preview, retire the emptied source, re-sync, and verify. Uses a durable recovery journal and concurrency-safe compensation.",
+      inputSchema: {
+        previewToken: z.string().min(20).max(256),
+        confirmed: z.literal(true)
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: true
+      }
+    },
+    async (input) => handled(() => service.applyCategoryConsolidation(input))
   );
 
   server.registerTool(

@@ -20,4 +20,4 @@ A release additionally requires:
 - rollback and credential-revocation instructions;
 - no credentials, raw receipts, financial exports, or unsanitized logs in Git history.
 
-Private ChatGPT readiness has two distinct gates: repository/tunnel tooling passes locally, then a human verifies tunnel association and the current 31 discovered tools in the intended ChatGPT workspace. The first must never be reported as proof of the second.
+Hosted ChatGPT readiness has distinct gates: repository tests; direct HTTP/auth staging; live owned-client ZenMoney authorization; and human verification of tool discovery in the intended ChatGPT workspace. Passing one gate must never be reported as proof of a later gate. Public distribution additionally requires completed policy/support/operator controls and current OpenAI review requirements.

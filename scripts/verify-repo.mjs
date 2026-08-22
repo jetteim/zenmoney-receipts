@@ -12,14 +12,23 @@ const required = [
   "docs/getting-started.md",
   "docs/how-to/install-with-agent.md",
   "docs/how-to/use-with-codex.md",
-  "docs/how-to/private-chatgpt.md",
+  "docs/how-to/deploy-hosted.md",
+  "docs/how-to/troubleshoot.md",
   "docs/reference/cli.md",
   "docs/reference/mcp-tools.md",
+  "docs/reference/hosted-configuration.md",
+  "docs/reference/receipt-extraction-contract.md",
   "docs/project/STATUS.md",
   "docs/project/ROADMAP.md",
   "docs/project/DECISIONS.md",
   "docs/project/TRACEABILITY.md",
-  "docs/project/DEFINITION_OF_DONE.md"
+  "docs/project/DEFINITION_OF_DONE.md",
+  "docs/project/OBSERVABILITY_INTENT.md",
+  "docs/project/HOSTED_PUBLICATION_CHECKLIST.md",
+  "docs/explanation/hosted-architecture.md",
+  "docs/policies/privacy.md",
+  "docs/policies/terms.md",
+  "docs/policies/support.md"
 ];
 
 const failures = [];

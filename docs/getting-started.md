@@ -61,6 +61,6 @@ This stores no receipt file or OCR. Read [Manage local receipt memory](how-to/ma
 
 Continue with [Use ZenMoney Receipts with Codex](how-to/use-with-codex.md) for receipt creation, category reviews, saving suggestions, ephemeral sessions, and troubleshooting.
 
-## 5. Optional private ChatGPT connection
+## 5. Optional direct hosted ChatGPT connection
 
-Continue with [Connect private ChatGPT](how-to/private-chatgpt.md). ChatGPT does not read the local Codex MCP registration; it needs its own private tunnel connection.
+Continue with [Deploy the direct hosted connector](how-to/deploy-hosted.md). ChatGPT does not read the local Codex MCP registration. The hosted path is a separate public HTTPS/OAuth service and does not use a tunnel. Your laptop can be offline after an independently operated deployment is complete.

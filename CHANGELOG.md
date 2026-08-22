@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 — 2026-08-22
+
+- Add a minimal persistent operation journal, deterministic operation IDs, restart classification, recovery inspection tools, and concurrency-safe phase tracking for receipt and consolidation writes.
+- Add allowlisted bounded operational events, a redacted support bundle, storage-aware doctor checks, and troubleshooting guidance.
+- Add direct hosted Streamable HTTP MCP with OAuth protected-resource metadata, strict bearer/origin validation, subject-bound sessions, encrypted per-tenant ZenMoney credential lifecycle, exact-previewed tenant-data deletion, filesystem/PostgreSQL envelope stores, Docker/Render deployment artifacts, and publication gates.
+- Add exact category consolidation across transactions, reminders, and reminder markers with full-reference discovery, durable recovery, verification, and fail-closed blocking when source budgets exist.
+- Add a host-neutral receipt extraction contract, ten-case fully synthetic evaluation corpus, deterministic regression metrics, and explicit OCR/model-accuracy limitations.
+- Retire and remove the laptop tunnel tooling and documentation; local stdio remains the default and direct hosted HTTP is the only remote architecture.
+- Update the agent skills, C4/threat model, roadmap, traceability, decisions, security boundaries, and ephemeral-session handoff for the new workflows.
+
 ## 0.6.0 — 2026-08-17
 
 - Add opt-in local receipt evidence memory with 180-day default retention, 1,000-record/4 MiB bounds, POSIX-private permissions, atomic locking/writes, and fail-closed corruption handling.

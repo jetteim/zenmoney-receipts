@@ -1,51 +1,47 @@
 # Project status
 
-Last updated: 2026-08-17
+Last updated: 2026-08-22
 
-Current version: 0.6.0
+Current version: 0.7.0
 
-Deployment target: private single-user local MCP; optional private ChatGPT Secure MCP Tunnel
+Deployment targets: private single-user local stdio; repository-ready direct hosted Streamable HTTP. No tunnel mode.
 
 ## Current outcome
 
-The connector supports the prioritized product workflows: create one expense per receipt-supported category, match/correct existing expenses, review and safely modify category taxonomy, and produce bounded history evidence for saving suggestions. Missing receipt dates/accounts become visibly marked preview suggestions instead of extra questions. Opt-in local receipt memory now retains only exact confirmed narrow purpose groups after financial verification and automatically requests a read-only granularity review after the same purpose recurs in three receipts. Receipt and taxonomy writes use explicit preview/confirmation, optimistic concurrency, and post-write verification.
+The local connector supports the three primary workflows: one verified expense per receipt-supported category; category review and safe taxonomy changes informed by opt-in narrow receipt evidence; and bounded read-only savings suggestions. Missing receipt dates/accounts are marked suggestions in the exact preview. Every ZenMoney write remains previewed, explicitly confirmed, concurrency-checked, journaled, and post-write verified.
 
-## Verified baseline
+Version 0.7.0 adds durable recovery inspection, privacy-safe diagnostics, safe category consolidation, a synthetic extraction contract pack, and a separately deployable multi-tenant HTTP/OAuth boundary. Hosted source and deployment artifacts are ready, but no production service or ChatGPT connection is claimed.
 
-- Offline unit/contract tests, typecheck, production bundle, stdio smoke, and repository validation: required on every change.
-- Live read-only synchronization: passed on 2026-08-15 with 79 active categories and no financial records printed.
-- Opt-in synthetic write E2E: passed 4/4 on the final v0.3.0 build on 2026-08-15; all exact generated IDs were deleted and cleanup verified.
-- User-confirmed receipt creation: one live no-match receipt was previewed, confirmed, created, and independently read back on 2026-08-16 without recording financial payloads in evidence.
-- Live savings-insights read: passed over a non-truncated 90-day sample; only counts were logged.
-- Codex local MCP registration: configured against this repository build on the maintainer machine.
-- Fresh ephemeral Codex session: connection status and read-only synchronization passed with the Keychain credential; no financial records were printed.
-- Proactive Codex workflows: receipt/category/savings skills are installed in the maintainer's Codex profile, validate successfully, and the installer is idempotent. New sessions can use receipt attachments or short intents instead of workflow prompts.
-- Taxonomy management: fixture-backed preview/apply, stale-write, hierarchy, retirement, idempotency, and MCP contract tests pass. A separately confirmed live operation on 2026-08-15 verified two creates, six allowlisted updates, and 26 exact transaction-category replacements with post-write read-back; retirement and restore remain live-unverified.
-- Fast receipt defaults: omitted date/account inputs produce an exact host-local-today/account recommendation preview and mark only inferred fields with basis/confidence; fixture-backed matching, ranking, fallback, and adversarial-input tests pass.
-- Local receipt memory: fixture-backed permission, atomicity, idempotency, retention, concurrency, corruption recovery, hostile-label, exact deletion/purge, MCP schema, and verified-receipt integration tests pass. Broad `Produce` evidence is rejected in favor of narrow durable purposes. The maintainer installation is enabled with 180-day retention; no live financial write was needed for this local feature.
+## Verification baseline
 
-Evidence: `docs/evidence/2026-08-15-v0.3.0-verification.md`, `docs/evidence/2026-08-15-v0.4.0-taxonomy-verification.md`, `docs/evidence/2026-08-15-live-taxonomy-operation.md`, `docs/evidence/2026-08-16-live-receipt-operation.md`, `docs/evidence/2026-08-16-v0.5.0-fast-receipt-defaults.md`, `docs/evidence/2026-08-17-v0.6.0-receipt-memory.md`, and `docs/e2e-test-log-2026-08-15.md`. New release/live evidence belongs in `docs/evidence/` and must be sanitized.
+- Offline unit/contract/adversarial tests, typecheck, bundle, stdio smoke, synthetic extraction evaluation, and repository validation are required on every change.
+- Historical live evidence: read-only sync, synthetic write/cleanup, one user-confirmed receipt creation, savings insights, and selected taxonomy create/update paths are recorded under `docs/evidence/` without financial payloads.
+- v0.7.0 evidence belongs in `docs/evidence/2026-08-22-v0.7.0-roadmap-completion.md`; it explicitly separates offline, read-only live, hosted-process, container, CI, and externally unverified results.
 
 ## External setup state
 
-- ZenMoney credential: configured on the maintainer machine; never stored in the repository.
-- Personal runtime choice: local Codex stdio MCP. The attempted local ChatGPT tunnel runtime/profile was stopped and removed after a malformed runtime key; the remote tunnel remains account-side until manually deleted.
-- Hosted ChatGPT connector: requested as a future separately deployed/public product; it is not implemented or installed. See `F-014` in the roadmap.
-- GitHub publishing: source is intended to be publicly cloneable; financial connections remain private per installation.
+- Local ZenMoney credential: configured on the maintainer machine and never stored in the repository.
+- Local Codex runtime: intended default personal workflow.
+- Hosted deployment: not provisioned. The code needs an operator, persistent encrypted storage, external OAuth identity provider, owned ZenMoney OAuth application, real policies/support contact, and staging verification.
+- ChatGPT connection: not installed or verified. A human must complete private staging discovery after deployment.
+- Public distribution: optional and explicitly out of current scope.
 
 ## Next actionable item
 
-`F-014 / S-014A` — design the hosted connector threat model, authentication sequence, deployment/provider decision, cost envelope, and staging/publication plan. No real user credentials are handled in this slice. See `ROADMAP.md`.
+There is no unblocked repository feature left from the current roadmap. Continue with one of:
+
+1. provide the external prerequisites and execute `F-014` staging;
+2. obtain authoritative ZenMoney budget-write semantics for `F-016B`; or
+3. add a new feature to `ROADMAP.md` with outcome, acceptance evidence, dependencies, and risks.
 
 ## Known limits
 
-- ZenMoney access-token acquisition/refresh is manual.
-- Preview and apply-result idempotency state is process-local; restart invalidates previews and loses completed-result replay state.
-- Compensating rollback is scoped and concurrency-safe but cannot guarantee recovery after process/host failure mid-operation.
-- Private ChatGPT availability depends on the local machine, tunnel process, and OpenAI workspace policy.
-- ZenMoney's public API documentation is old and has known drift; live verification remains a release gate.
-- Category hard deletion and bulk history consolidation are not exposed; `F-016` depends on crash-safe all-reference migration.
-- Live taxonomy retirement and restore compatibility remain unverified; create, rename, reparent, budget-behavior update, and exact transaction-category replacement were verified on 2026-08-15.
-- Receipt-memory evidence starts only with newly confirmed receipt operations; it does not backfill historical receipts. The three-receipt readiness threshold is a review heuristic, not proof that a new category is warranted.
-- Receipt memory is not application-encrypted in the local single-user release; it relies on OS account/disk security plus `0700`/`0600` permissions. Hosted/multi-user storage requires encryption and tenant isolation.
-- Suggested paying accounts are heuristic and may be low-confidence; the exact preview exposes the basis and requires user confirmation or correction.
+- Unapplied preview tokens are process-local and expire; the persistent journal supports recovery of started operations, not reuse of stale previews.
+- Category consolidation refuses any source referenced by a budget. It does not guess or partially migrate.
+- ZenMoney's public API documentation has known drift; live verification remains a release gate after backend/API changes.
+- Live taxonomy retirement/restore and v0.7.0 consolidation remain unverified because this work did not have fresh authorization for live writes.
+- The synthetic extraction pack verifies structured-facts contract behavior, not host OCR/model accuracy on real receipts.
+- Receipt evidence is prospective, bounded, and default-off. It stores no receipt/OCR, merchant, product, transaction ID, or raw response and cannot backfill old receipts.
+- Local receipt evidence is permission-protected but not application-encrypted. Hosted credential envelopes are encrypted; other hosted state still requires the configured encrypted persistent disk.
+- The provided Render profile is deliberately single-instance. Disk-backed state and in-memory MCP sessions do not support horizontal scaling or zero-downtime deployment without a redesigned shared-state/session layer.
+- Privacy-safe local events are support diagnostics, not a complete hosted telemetry/SLO backend. Operator ownership and telemetry are publication gates.
