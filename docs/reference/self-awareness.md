@@ -11,3 +11,9 @@ Supplied categories, allocations, and evidence groups remain caller choices even
 ## Effective capabilities
 
 `zenmoney_capabilities` is a local read, including in hosted mode: it reads tenant connection metadata and receipt-memory status without synchronizing with ZenMoney. It reports mode, transport, implemented workflows, write prerequisites, unsupported actions, evidence locality and availability. A configured credential is not live verification. Disabled recording can coexist with readable retained evidence. Failed/corrupt memory is unavailable, not an empty history. Host model and loaded skills remain unknown.
+
+## Evidence coverage
+
+Memory search `coverage` counts stored, active, expired, matched and returned distinct receipts. It describes the requested period and observed receipt months; purpose counts must not be summed to infer receipt count. Retention is based on when evidence was recorded, not the receipt month. Reads exclude expired evidence without modifying the store.
+
+Category/spending summaries report examined, included and excluded transactions, observed months and source bounds. Spending results also expose per-instrument display counts/limits. Months without evidence are not asserted to have zero spending. `completeShoppingHistory` is always false; these sources cannot prove that all purchases were captured. Observed month lists are capped at 120 with their own truncation flag.

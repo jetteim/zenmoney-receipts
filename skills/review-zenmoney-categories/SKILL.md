@@ -14,6 +14,8 @@ description: Review bounded ZenMoney spending summaries, recommend clearer group
 
 ## Workflow
 
+Use `coverage` to state distinct matched/returned receipts, observed months, retention and truncation. Do not sum receipt counts across purposes or equate absent evidence with zero spending; retained evidence is never complete shopping history.
+
 Check `zenmoney_capabilities` at first relevant use or when availability is unclear. Configured is not live-verified; failed memory is unavailable, not evidence of no spending. Server-reported host skills remain unknown.
 
 Use returned `provenance` when explaining tool decisions. Distinguish upstream suggestions and server rules from your own interpretation and caller-selected values; do not invent receipt verification or preference use.

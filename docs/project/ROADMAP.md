@@ -10,7 +10,6 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 
 ## Ready / Now
 
-- `F-023` evidence coverage: distinguish observed records and periods from complete history. Depend on bounded summary/memory reads; no inferred zero-spend gaps. Acceptance: empty, expired, filtered, and truncated fixtures.
 - `F-024` explicit preference memory: opt-in structured preferences outside Git, exact preview/confirmation, inspection/edit/delete/disable/purge, no financial rewrite. Depend on private local storage and preview contracts. Acceptance: conflict/restart/permissions/corruption/input-safety tests; hosted mode must not leak local preferences.
 - `F-025` guidance/version diagnostics: identify running build/contract and compare explicitly reported host guidance without claiming to inspect the host. Depend on capability report. Acceptance: current/stale/unknown and malformed report tests.
 - `F-026` completion boundaries: distinguish preview, verified finance, retained evidence, and verified remote comments. Depend on receipt apply and memory results. Acceptance: success, disabled/unavailable memory, replay and failed-write cases.
@@ -45,6 +44,11 @@ All six self-awareness capabilities are user-authorized for implementation, with
 - Boundary: public discoverability is not required for the user's private hosted setup.
 
 ## Completed
+
+### F-023 — Evidence coverage
+
+- Outcome: distinguish retained/returned evidence and observed periods from complete spending history. Memory counts distinct receipts; summaries separate excluded records and source/display bounds.
+- Acceptance: empty, expired, filtered, truncated, multi-purpose and bounded-month fixtures; full offline suite and read-only live doctor. No new persisted data or changed read selection. Dependencies: bounded memory and summary reads. Traceability: VS-05 / C-17; VS-06 / C-13.
 
 ### F-022 — Effective capability report
 

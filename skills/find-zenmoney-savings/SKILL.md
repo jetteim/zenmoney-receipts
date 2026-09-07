@@ -7,6 +7,8 @@ description: Analyze bounded ZenMoney expense history and suggest evidence-based
 
 ## Workflow
 
+Use `coverage` and each instrument's `displayCoverage` to explain included/excluded records, observed periods, source limits and omitted display rows. Missing periods are not proof of zero spending, and complete shopping history is not established by a bounded result.
+
 1. Use the requested period, or default to the previous three complete calendar months without asking.
 2. Call `zenmoney_connection_status` and `zenmoney_sync`.
 3. Call `zenmoney_spending_insights` for the period. If `possiblyTruncated` is true, split the request into smaller non-overlapping periods before drawing conclusions.

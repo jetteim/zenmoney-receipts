@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { decision, provenance } from "./provenance.js";
+import { transactionCoverage } from "./evidence-coverage.js";
 
 import { credentialStatus } from "./credentials.js";
 import { OperationPreviewStore } from "./operation-preview-store.js";
@@ -1781,6 +1782,7 @@ export class ZenMoneyReceiptService {
       dateFrom: input.dateFrom,
       dateTo: input.dateTo,
       transactionCountExamined: transactions.length,
+      coverage: transactionCoverage(transactions, input, limit),
       possiblyTruncated: transactions.length === limit,
       currencySafety: "Totals are separated by ZenMoney instrument id and must not be added across instruments.",
       groups: [...buckets.values()].sort(
@@ -1870,6 +1872,7 @@ export class ZenMoneyReceiptService {
       dateTo: input.dateTo,
       transactionCountExamined: transactions.length,
       expenseTransactionCount: expenseTransactions.length,
+      coverage: transactionCoverage(transactions, input, limit),
       possiblyTruncated: transactions.length === limit,
       evidenceBoundary:
         "These are descriptive signals, not guaranteed savings. Ask the user about needs, commitments, and goals before recommending a cut.",
@@ -1880,6 +1883,11 @@ export class ZenMoneyReceiptService {
           total: roundMoney(bucket.total),
           transactionCount: bucket.transactionCount,
           averagePerActiveMonth: roundMoney(bucket.total / Math.max(bucket.months.size, 1)),
+          displayCoverage: {
+            categories: { total: bucket.categories.size, returned: Math.min(30, bucket.categories.size), truncated: bucket.categories.size > 30 },
+            recurringPayees: { total: [...bucket.payees.values()].filter(p => p.transactionCount >= 2 && p.months.size >= 2).length, limit: 20 },
+            largestExpenses: { total: bucket.largest.length, returned: Math.min(20, bucket.largest.length), truncated: bucket.largest.length > 20 }
+          },
           monthlyTotals: [...bucket.months.entries()]
             .map(([month, total]) => ({ month, total: roundMoney(total) }))
             .sort((left, right) => left.month.localeCompare(right.month)),

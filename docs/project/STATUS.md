@@ -8,7 +8,7 @@ Deployment targets: private single-user local stdio; repository-ready direct hos
 
 ## Current outcome
 
-Self-awareness implementation: `F-021` provenance and `F-022` effective capabilities are implemented; `F-023` through `F-026` are next. Runtime metadata distinguishes observed decisions, configured connectivity, unavailable storage, and unknown host state.
+Self-awareness implementation: `F-021` provenance, `F-022` capabilities, and `F-023` evidence coverage are implemented; `F-024` through `F-026` are next. Metadata separates observed decisions, configured connectivity, unavailable storage, bounded evidence, and unknown host state.
 
 The local connector supports the three primary workflows: one verified expense per receipt-supported category; category review and safe taxonomy changes informed by opt-in narrow receipt evidence; and bounded read-only savings suggestions. Missing receipt dates/accounts are marked suggestions in the exact preview. Every ZenMoney write remains previewed, explicitly confirmed, concurrency-checked, journaled, and post-write verified.
 

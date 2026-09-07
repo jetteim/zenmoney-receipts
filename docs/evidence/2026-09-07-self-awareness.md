@@ -1,5 +1,10 @@
 # Self-awareness verification — 2026-09-07
 
+## F-023 evidence coverage
+
+- `npm run check`: passed, 79 tests passed; read-only expiry, distinct counts, filtered/empty/truncated coverage and month bounds verified. `npm run doctor:live`: passed after the coverage changes; no live writes.
+- Output: `/tmp/zenmoney-f023-check.log` and `/tmp/zenmoney-self-awareness-live-doctor.log`; no new metric/log/trace names. Rollback: revert F-023, rebuild/restart; no stored-data migration.
+
 ## F-022 effective capabilities
 
 - `npm run check`: passed, including local/hosted/unconfigured/store-failure capability fixtures and the real in-memory MCP tool call. No provider calls are made by this capability.

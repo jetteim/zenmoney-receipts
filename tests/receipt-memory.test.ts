@@ -38,6 +38,23 @@ async function enable(store: ReceiptMemoryStore, now = Date.now()): Promise<void
 }
 
 describe("receipt memory", () => {
+  it("reports distinct coverage through filtering, truncation and read-only expiry", async () => {
+    const directory = await root();
+    const store = new ReceiptMemoryStore(directory);
+    const now = Date.UTC(2026, 0, 1);
+    await enable(store, now);
+    await store.recordVerified({ transactionIds: ["first"], receiptDate: "2026-01-01", instrument: 2, groups: [fruit, { ...fruit, purpose: "Fresh vegetables" }] }, now);
+    await store.recordVerified({ transactionIds: ["second"], receiptDate: "2026-02-01", instrument: 2, groups: [fruit] }, now + 10 * 86400000);
+    const all = await store.search({ limit: 1 }, now + 10 * 86400000);
+    expect(all.possiblyTruncated).toBe(true);
+    expect(all.coverage).toMatchObject({ storedReceiptCount: 2, matchedReceiptCount: 2, returnedReceiptCount: 2, observedMonths: ["2026-01", "2026-02"], completeShoppingHistory: false });
+    const filtered = await store.search({ query: "vegetables", limit: 10 }, now + 10 * 86400000);
+    expect(filtered.coverage.matchedReceiptCount).toBe(1);
+    const before = await readFile(join(directory, "receipt-memory.json"), "utf8");
+    const expired = await store.search({ monthFrom: "2026-03", limit: 10 }, now + 185 * 86400000);
+    expect(expired.coverage).toMatchObject({ expiredReceiptCount: 1, activeReceiptCount: 1, matchedReceiptCount: 0, returnedReceiptCount: 0, observedMonths: [] });
+    expect(await readFile(join(directory, "receipt-memory.json"), "utf8")).toBe(before);
+  });
   it("is disabled and does not create a file until explicitly configured", async () => {
     const directory = await root();
     const store = new ReceiptMemoryStore(directory);

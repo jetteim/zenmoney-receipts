@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { chmod, lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { observedMonths } from "./evidence-coverage.js";
 
 export const RECEIPT_MEMORY_SCHEMA_VERSION = 1;
 export const DEFAULT_RECEIPT_MEMORY_RETENTION_DAYS = 180;
@@ -57,6 +58,21 @@ export interface ReceiptMemoryStatus {
 }
 
 export interface ReceiptMemorySearchResult {
+  coverage: {
+    source: "retained-receipt-evidence";
+    completeShoppingHistory: false;
+    storedReceiptCount: number;
+    activeReceiptCount: number;
+    matchedReceiptCount: number;
+    returnedReceiptCount: number;
+    expiredReceiptCount: number;
+    retentionDays: number;
+    retentionBasis: "recorded-at";
+    requestedPeriod: { monthFrom: string | null; monthTo: string | null };
+    observedMonths: string[];
+    observedMonthsTruncated: boolean;
+    missingPeriodsMean: string;
+  };
   enabled: boolean;
   untrustedData: true;
   evidenceBoundary: string;
@@ -624,7 +640,23 @@ export class ReceiptMemoryStore {
       lastMonth: value.lastMonth,
       sampleRecordIds: value.sampleRecordIds
     }));
+    const matchedIds = new Set(all.flatMap(value => [...value.recordIds]));
+    const returnedIds = new Set(all.slice(0, input.limit).flatMap(value => [...value.recordIds]));
     return {
+      coverage: {
+        source: "retained-receipt-evidence",
+        completeShoppingHistory: false,
+        storedReceiptCount: state.records.length,
+        activeReceiptCount: active.length,
+        matchedReceiptCount: matchedIds.size,
+        returnedReceiptCount: returnedIds.size,
+        expiredReceiptCount: state.records.length - active.length,
+        retentionDays: state.retentionDays,
+        retentionBasis: "recorded-at",
+        requestedPeriod: { monthFrom: input.monthFrom ?? null, monthTo: input.monthTo ?? null },
+        ...observedMonths(active.filter(record => matchedIds.has(record.id)).map(record => record.receiptMonth)),
+        missingPeriodsMean: "no-retained-matching-evidence-not-zero-spending"
+      },
       enabled: state.enabled,
       untrustedData: true,
       evidenceBoundary:
