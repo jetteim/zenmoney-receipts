@@ -26,6 +26,7 @@ description: >-
 
 ## Interaction contract
 
+- Check `zenmoney_capabilities` at first relevant use or when availability is unclear. Explain configuration separately from live verification. The server cannot discover your loaded skills; never infer availability or an empty history from a failed memory read.
 - Explain decisions using returned `provenance`: distinguish caller choices, server defaults/rules, and ZenMoney suggestions. State your own receipt interpretation separately; a valid input is not server verification of the receipt. Attribute a saved preference only when you actually inspected and used it.
 - Do not ask the user to describe this workflow or repeat information visible in the receipt/ZenMoney data.
 - Perform safe status, synchronization, category/account discovery, matching, and preview calls autonomously.

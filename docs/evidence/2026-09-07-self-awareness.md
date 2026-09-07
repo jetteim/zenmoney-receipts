@@ -1,5 +1,10 @@
 # Self-awareness verification — 2026-09-07
 
+## F-022 effective capabilities
+
+- `npm run check`: passed, including local/hosted/unconfigured/store-failure capability fixtures and the real in-memory MCP tool call. No provider calls are made by this capability.
+- Output: `/tmp/zenmoney-f022-check.log`; no new metric/log/trace names. Rollback: revert F-022, rebuild and restart; no data migration.
+
 Target: local connector source and build. No live financial writes authorized or performed. This file contains engineering verification only.
 
 ## F-021 decision provenance

@@ -2,6 +2,7 @@
 
 | Value/capability | Feature | Contract or architecture impact | Verification evidence | State |
 | --- | --- | --- | --- | --- |
+| VS-03 / C-05 onboarding | F-022 | Effective capability report without provider access | Local/hosted/failure fixtures; MCP contract; full offline check | Complete |
 | VS-03 / C-05 onboarding; VS-05 / C-17 evidence clarity | F-021 | Structured caller/server/upstream decision provenance | Provenance service tests; full offline check | Complete |
 | VS-01 verified receipt-to-ledger / C-01 safe matching | F-010 | Bounded projections and signed preview | service and MCP contract tests | Complete |
 | VS-01 / C-02 exact allocation and creation | F-011, F-012 | Exact reconciliation/create plans, compensation, verification | receipt-operation/direct-write tests; historical live E2E | Complete |

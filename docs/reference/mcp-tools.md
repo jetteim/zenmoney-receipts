@@ -7,6 +7,7 @@ Run `node dist/cli.js schema` after a build for the authoritative machine-readab
 | Tool | Purpose |
 | --- | --- |
 | `zenmoney_connection_status` | Report credential availability/source without connecting or exposing it. |
+| `zenmoney_capabilities` | Read effective mode, connection configuration, memory availability and feature limits; never claims live verification or host skill discovery. |
 | `zenmoney_sync` | Refresh the in-memory ZenMoney snapshot. |
 | `zenmoney_list_accounts` | Return bounded account metadata without balances. |
 | `zenmoney_list_categories` | Return active categories and one-level parents; include retired categories only when requested. |

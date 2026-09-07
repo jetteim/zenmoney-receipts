@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const expectedTools = [
+  "zenmoney_capabilities",
   "zenmoney_connection_status",
   "zenmoney_sync",
   "zenmoney_list_operation_recovery",

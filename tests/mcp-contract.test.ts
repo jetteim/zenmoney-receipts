@@ -24,6 +24,7 @@ describe("MCP contract", () => {
 
     const result = await client.listTools();
     expect(result.tools.map((tool) => tool.name)).toEqual([
+      "zenmoney_capabilities",
       "zenmoney_connection_status",
       "zenmoney_sync",
       "zenmoney_list_operation_recovery",
@@ -61,6 +62,9 @@ describe("MCP contract", () => {
       "zenmoney_spending_insights"
     ]);
     const apply = result.tools.find((tool) => tool.name === "zenmoney_apply_receipt_category");
+    const capabilities = await client.callTool({ name: "zenmoney_capabilities", arguments: {} });
+    expect(capabilities.isError).not.toBe(true);
+    expect(capabilities.structuredContent).toMatchObject({ result: { mode: "local", connection: { liveVerified: false }, host: { loadedSkills: "unknown" } } });
     expect(apply?.annotations).toMatchObject({
       readOnlyHint: false,
       destructiveHint: false,

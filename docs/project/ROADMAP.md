@@ -10,7 +10,6 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 
 ## Ready / Now
 
-- `F-022` effective capability report: expose mode, configured-vs-verified connectivity, supported actions and memory availability without a live API call. Depend on existing status/tool contracts; never infer host skill loading. Acceptance: local/hosted/unconfigured/failing-store contract tests.
 - `F-023` evidence coverage: distinguish observed records and periods from complete history. Depend on bounded summary/memory reads; no inferred zero-spend gaps. Acceptance: empty, expired, filtered, and truncated fixtures.
 - `F-024` explicit preference memory: opt-in structured preferences outside Git, exact preview/confirmation, inspection/edit/delete/disable/purge, no financial rewrite. Depend on private local storage and preview contracts. Acceptance: conflict/restart/permissions/corruption/input-safety tests; hosted mode must not leak local preferences.
 - `F-025` guidance/version diagnostics: identify running build/contract and compare explicitly reported host guidance without claiming to inspect the host. Depend on capability report. Acceptance: current/stale/unknown and malformed report tests.
@@ -46,6 +45,11 @@ All six self-awareness capabilities are user-authorized for implementation, with
 - Boundary: public discoverability is not required for the user's private hosted setup.
 
 ## Completed
+
+### F-022 — Effective capability report
+
+- Outcome: read-only MCP capability report distinguishes mode, configuration, unsupported actions and evidence availability from live verification and unknown host state.
+- Acceptance: local/hosted/unconfigured/corrupt/failing-store fixtures, real MCP discovery/call contract and full offline suite. Dependencies: existing status and memory contracts; no API reads or writes added. Traceability: VS-03 / C-05.
 
 ### F-021 — Decision provenance
 
