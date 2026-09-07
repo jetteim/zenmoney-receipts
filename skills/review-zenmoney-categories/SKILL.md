@@ -14,6 +14,8 @@ description: Review bounded ZenMoney spending summaries, recommend clearer group
 
 ## Workflow
 
+Use returned `provenance` when explaining tool decisions. Distinguish upstream suggestions and server rules from your own interpretation and caller-selected values; do not invent receipt verification or preference use.
+
 1. Use the requested period, or default to the previous 90 days without asking.
 2. Call `zenmoney_connection_status`, `zenmoney_sync`, `zenmoney_list_categories`, and `zenmoney_receipt_memory_status`.
 3. Call `zenmoney_category_summary` for the period. If `possiblyTruncated` is true, split the date range into smaller periods before drawing conclusions.

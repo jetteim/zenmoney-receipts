@@ -2,6 +2,7 @@
 
 | Value/capability | Feature | Contract or architecture impact | Verification evidence | State |
 | --- | --- | --- | --- | --- |
+| VS-03 / C-05 onboarding; VS-05 / C-17 evidence clarity | F-021 | Structured caller/server/upstream decision provenance | Provenance service tests; full offline check | Complete |
 | VS-01 verified receipt-to-ledger / C-01 safe matching | F-010 | Bounded projections and signed preview | service and MCP contract tests | Complete |
 | VS-01 / C-02 exact allocation and creation | F-011, F-012 | Exact reconciliation/create plans, compensation, verification | receipt-operation/direct-write tests; historical live E2E | Complete |
 | VS-01 / C-18 fast defaults | F-018 | Optional inputs; marked provenance; deterministic bounded ranking | receipt-default tests and MCP contract | Complete |

@@ -10,7 +10,13 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 
 ## Ready / Now
 
-There is no unblocked repository implementation item. “Proceed” should select the first item whose external prerequisite has become available, or refine a newly requested feature.
+- `F-022` effective capability report: expose mode, configured-vs-verified connectivity, supported actions and memory availability without a live API call. Depend on existing status/tool contracts; never infer host skill loading. Acceptance: local/hosted/unconfigured/failing-store contract tests.
+- `F-023` evidence coverage: distinguish observed records and periods from complete history. Depend on bounded summary/memory reads; no inferred zero-spend gaps. Acceptance: empty, expired, filtered, and truncated fixtures.
+- `F-024` explicit preference memory: opt-in structured preferences outside Git, exact preview/confirmation, inspection/edit/delete/disable/purge, no financial rewrite. Depend on private local storage and preview contracts. Acceptance: conflict/restart/permissions/corruption/input-safety tests; hosted mode must not leak local preferences.
+- `F-025` guidance/version diagnostics: identify running build/contract and compare explicitly reported host guidance without claiming to inspect the host. Depend on capability report. Acceptance: current/stale/unknown and malformed report tests.
+- `F-026` completion boundaries: distinguish preview, verified finance, retained evidence, and verified remote comments. Depend on receipt apply and memory results. Acceptance: success, disabled/unavailable memory, replay and failed-write cases.
+
+All six self-awareness capabilities are user-authorized for implementation, with one verified commit per capability. Traceability: VS-03 / C-05 private onboarding, VS-04 / C-09 diagnosis, VS-05 / C-17 evidence clarity.
 
 ## Externally gated
 
@@ -40,6 +46,12 @@ There is no unblocked repository implementation item. “Proceed” should selec
 - Boundary: public discoverability is not required for the user's private hosted setup.
 
 ## Completed
+
+### F-021 — Decision provenance
+
+- Outcome: explain receipt defaults, caller category/allocation choices, match ambiguity, and upstream suggestions by their actual source.
+- Evidence: additive provenance in service outputs, synthetic service tests for supplied/defaulted/no-match decisions, full offline check. Existing amount/category/confirmation rules are unchanged.
+- Dependencies: receipt service and existing recommendation helpers. Risk: attribution covers server-observable facts, not host reasoning or OCR correctness. Traceability: VS-03 / C-05 and VS-05 / C-17.
 
 - `F-001` durable ephemeral-session handoff.
 - `F-002` agent-safe installer, secure macOS auth helper, structured doctor/schema, and idempotent host registration.

@@ -1,5 +1,13 @@
 # Decision log
 
+## D-019 — Observable self-awareness, one capability per commit
+
+Decision: implement F-021 through F-026 sequentially with additive structured contracts and a verified commit per capability. Attribute only server-observable decisions; caller inputs are not independently verified receipt facts. Keep human consent and host skill loading explicitly outside server observation.
+
+Decision: preference memory will be a separate default-off local store with a finite allowlist of categorical preferences, exact preview/confirmation, and conflict-safe controls. It will advise future host decisions, never rewrite financial records or persist arbitrary chat/receipt text. Hosted mode will report local preferences unsupported rather than reading an operator's personal store.
+
+Reason: self-description should expose verifiable state and uncertainty, not invent awareness or silently learn user behavior. User authorized all six capabilities and per-capability commits; live financial writes remain unauthorized.
+
 ## D-018 — Map behavior ownership separately from deployment
 
 Decision: maintain a source-linked behavior architecture explanation alongside the existing C4/deployment and security views. Use a component diagram to separate host reasoning and advisory instructions from executable interfaces/domain rules, a receipt sequence to show handoffs, and a lookup table to locate each behavior's owner. Link stable source paths and function names rather than duplicating implementation listings.

@@ -26,6 +26,7 @@ description: >-
 
 ## Interaction contract
 
+- Explain decisions using returned `provenance`: distinguish caller choices, server defaults/rules, and ZenMoney suggestions. State your own receipt interpretation separately; a valid input is not server verification of the receipt. Attribute a saved preference only when you actually inspected and used it.
 - Do not ask the user to describe this workflow or repeat information visible in the receipt/ZenMoney data.
 - Perform safe status, synchronization, category/account discovery, matching, and preview calls autonomously.
 - Do not ask for a missing receipt date or paying account. Let the connector recommend them in the preview and mark them as suggested.

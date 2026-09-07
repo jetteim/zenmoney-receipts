@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { decision, provenance } from "./provenance.js";
 
 import { credentialStatus } from "./credentials.js";
 import { OperationPreviewStore } from "./operation-preview-store.js";
@@ -705,6 +706,7 @@ export class ZenMoneyReceiptService {
     const categories = await this.listCategories(false);
     return {
       source: "ZenMoney transaction suggestion API",
+      provenance: provenance([decision("categories", "zenmoney", "transaction-suggestion-api-filtered-to-active-categories")]),
       categories: categories.filter(
         (category) => !category.archive && suggestedIds.has(category.id)
       ),
@@ -753,6 +755,12 @@ export class ZenMoneyReceiptService {
         "Matching checks both the ZenMoney account amount and its original operation amount when available; the receipt currency code is not mapped to a ZenMoney instrument id.",
       confidence,
       ambiguous,
+      provenance: provenance([
+        decision("receiptFacts", "caller", "structured-input-not-independently-verified"),
+        decision("searchDate", receiptDate.suggested ? "server-rule" : "caller", receiptDate.suggested ? "mcp-process-local-calendar" : "supplied-date"),
+        decision("candidates", "server-rule", "amount-date-account-merchant-scoring"),
+        decision("ambiguous", "server-rule", !top ? "no-candidates" : top.score < 70 ? "top-score-below-70" : ambiguous ? "top-score-gap-below-10" : "score-and-gap-accepted")
+      ]),
       guidance: ambiguous
         ? "Do not change anything yet. Ask the user to select or clarify the transaction."
         : "Use the top transaction id to preview a category change before requesting confirmation.",
@@ -795,6 +803,11 @@ export class ZenMoneyReceiptService {
     });
     return {
       operation: "replace transaction categories",
+      provenance: provenance([
+        decision("before", "zenmoney", "current-expense-snapshot"),
+        decision("categories", "caller", "selected-active-category-ids"),
+        decision("evidenceGroups", "caller", "contract-validated-purpose-groups")
+      ]),
       before: { transaction, categories: categoryNames(transaction.tag, categories) },
       proposed: { tagIds: input.tagIds, categories: selected.map((category) => category!.title) },
       receiptMemory: await this.describeReceiptMemory(evidenceGroups),
@@ -955,6 +968,11 @@ export class ZenMoneyReceiptService {
     const preview = this.reconciliationPreviews.create(plan);
     return {
       operation: "reconcile existing receipt expenses",
+      provenance: provenance([
+        decision("before", "zenmoney", "current-expense-snapshots"),
+        decision("allocations", "caller", "category-and-total-contract-validated"),
+        decision("evidenceGroups", "caller", "contract-validated-purpose-groups")
+      ]),
       receiptTotal: plan.receiptTotal,
       sourceTotal: plan.sourceTotal,
       allocatedTotal: plan.allocatedTotal,
@@ -1043,6 +1061,12 @@ export class ZenMoneyReceiptService {
     const preview = this.creationPreviews.create(plan);
     return {
       operation: plan.parts.length === 1 ? "create receipt expense" : "create allocated receipt expenses",
+      provenance: provenance([
+        decision("date", receiptDate.suggested ? "server-rule" : "caller", receiptDate.suggested ? "mcp-process-local-calendar" : "supplied-date"),
+        decision("account", accountSuggestion ? "server-rule" : "caller", accountSuggestion?.basis ?? "supplied-account"),
+        decision("parts", "caller", "category-and-total-contract-validated"),
+        decision("evidenceGroups", "caller", "contract-validated-purpose-groups")
+      ]),
       account,
       receiptTotal: plan.receiptTotal,
       date: plan.date,

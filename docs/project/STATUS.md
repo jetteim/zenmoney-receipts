@@ -8,6 +8,8 @@ Deployment targets: private single-user local stdio; repository-ready direct hos
 
 ## Current outcome
 
+Self-awareness implementation: `F-021` decision provenance is implemented; `F-022` through `F-026` are authorized next, each with its own verification and commit. Runtime metadata distinguishes observed server decisions from caller interpretation.
+
 The local connector supports the three primary workflows: one verified expense per receipt-supported category; category review and safe taxonomy changes informed by opt-in narrow receipt evidence; and bounded read-only savings suggestions. Missing receipt dates/accounts are marked suggestions in the exact preview. Every ZenMoney write remains previewed, explicitly confirmed, concurrency-checked, journaled, and post-write verified.
 
 Version 0.7.0 adds durable recovery inspection, privacy-safe diagnostics, safe category consolidation, a synthetic extraction contract pack, and a separately deployable multi-tenant HTTP/OAuth boundary. Hosted source and deployment artifacts are ready, but no production service or ChatGPT connection is claimed.
@@ -17,6 +19,8 @@ Version 0.7.0 adds durable recovery inspection, privacy-safe diagnostics, safe c
 `F-020` adds [behavior architecture diagrams and a source map](../explanation/behavior-architecture.md): host reasoning, skills/workspace guidance, MCP prose versus schemas/handlers, deterministic service rules, backend interfaces, and local/hosted state. It includes a receipt sequence and diagnostic lookup without changing runtime behavior.
 
 ## Verification baseline
+
+- Self-awareness verification is recorded in [2026-09-07 evidence](../evidence/2026-09-07-self-awareness.md). F-021 passed the full offline suite and the read-only live doctor outside the sandbox; no live writes were made.
 
 - Offline unit/contract/adversarial tests, typecheck, bundle, stdio smoke, synthetic extraction evaluation, and repository validation are required on every change.
 - Historical live evidence: read-only sync, synthetic write/cleanup, one user-confirmed receipt creation, savings insights, and selected taxonomy create/update paths are recorded under `docs/evidence/` without financial payloads.
@@ -34,7 +38,7 @@ Version 0.7.0 adds durable recovery inspection, privacy-safe diagnostics, safe c
 
 ## Next actionable item
 
-There is no unblocked repository feature left from the current roadmap. Continue with one of:
+Complete the remaining self-awareness capabilities in `Ready / Now`, then continue with one of:
 
 1. provide the external prerequisites and execute `F-014` staging;
 2. obtain authoritative ZenMoney budget-write semantics for `F-016B`; or

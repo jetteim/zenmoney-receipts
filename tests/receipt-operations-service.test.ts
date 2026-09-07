@@ -227,6 +227,26 @@ describe("receipt reconciliation", () => {
 });
 
 describe("new receipt creation", () => {
+  it("distinguishes caller choices from computed defaults without claiming receipt verification", async () => {
+    const backend = new ReceiptBackend();
+    const service = new ZenMoneyReceiptService(backend);
+    const supplied = await service.previewNewReceipt({
+      receiptTotal: 6, date: "2026-08-15", accountId: "account-1",
+      parts: [{ amount: 6, tagIds: ["food"] }]
+    });
+    const suggested = await service.previewNewReceipt({
+      receiptTotal: 6, parts: [{ amount: 6, tagIds: ["food"] }]
+    });
+    expect(supplied.provenance.receiptContentVerifiedByServer).toBe(false);
+    expect(supplied.provenance.decisions.find(d => d.field === "account")?.origin).toBe("caller");
+    expect(suggested.provenance.decisions.find(d => d.field === "account")).toMatchObject({
+      origin: "server-rule", basis: "single-account"
+    });
+    expect(suggested.provenance.decisions.find(d => d.field === "parts")?.origin).toBe("caller");
+    const empty = await service.matchReceipt({ total: 99, date: "2026-08-15" });
+    expect(empty.provenance.decisions.find(d => d.field === "ambiguous")?.basis).toBe("no-candidates");
+    expect(writes(backend)).toHaveLength(0);
+  });
   it("records narrow evidence only after verified apply and exposes review readiness", async () => {
     const directory = await mkdtemp(join(tmpdir(), "zenmoney-service-memory-"));
     try {
