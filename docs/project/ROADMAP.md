@@ -60,6 +60,24 @@ There is no unblocked repository implementation item. “Proceed” should selec
 - `F-017` opt-in, bounded, sanitized receipt-evidence memory and automatic read-only review readiness.
 - `F-018` fast marked missing-date/account suggestions.
 
+### F-019 — Evidence storage self-awareness
+
+- User outcome: after cloning and beginning receipt/category work, understand where retained evidence lives, keep personal data out of the repository, and know how to keep optional category-candidate notes remotely in ZenMoney comments.
+- Delivery: README and memory-guide sections, repository operating contract, receipt/category skills, and MCP instructions. Report actual status/location/retention at first relevant session use; distinguish local MCP storage from hosted tenant storage and from ZenMoney comments.
+- Acceptance evidence: source review against memory location/hosted storage and comment contracts; full offline `npm run check`; skill metadata validation; `git diff --check`. Guidance covers unavailable/disabled memory without fallback files, clone portability, remote-note deletion independence, preserving existing comments, and exact confirmation for new-receipt comments.
+- Dependencies: `F-017` managed receipt memory, `F-012` existing optional new-receipt comment input, and `F-009` category-review workflow.
+- Risks/boundaries: host models must follow the guidance; it is not filesystem enforcement. No automatic remote backup, comment editing of existing expenses, or new live write surface. A receipt-level comment is repeated on each created split part; comments do not count toward local readiness. Live comment persistence and model behavior are not verified by the offline suite.
+- Traceability: VS-03 private onboarding / C-05 and VS-05 category clarity / C-17. Repository complete; restart the MCP and refresh installed skills to load the updated guidance.
+
+### F-020 — Behavior architecture and source ownership
+
+- User outcome: answer “where does this behavior come from?” and locate the right guidance, interface, rule, or integration before making a change.
+- Delivery: source-linked component and dynamic Mermaid views, a behavior-owner lookup, local/hosted interface and storage boundaries, and a diagnostic path linked from README and existing architecture docs.
+- Acceptance evidence: check diagram syntax/rendering and source-link targets; trace claims to schemas, handlers, helpers, stores, host skills, and entrypoints; run `npm run check` and `git diff --check`.
+- Dependencies: implemented receipt/taxonomy/memory workflows and `F-019` locality guidance. Traceability: VS-02 / C-04 development continuity; VS-03 / C-05 onboarding.
+- Risks/boundaries: documentation can drift; host instruction loading and human consent remain host responsibilities. No claim of filesystem enforcement, autonomous review scheduling, live deployment, or measured model adherence.
+- State: repository documentation complete; implementation and financial state unchanged.
+
 ## Dispositioned ideas
 
 - Cross-platform credentials: local environment injection works on every supported platform; native OS adapters remain a contribution opportunity, not a current user blocker. Hosted mode uses encrypted tenant storage.

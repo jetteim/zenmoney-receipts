@@ -32,6 +32,13 @@ description: >-
 - Ask at most one focused question when a transaction match or exact allocation remains genuinely ambiguous; combine related choices.
 - The only routine pause is the explicit confirmation of the exact financial-write preview.
 
+## Storage self-awareness
+
+- At first relevant use in a session, use `zenmoney_receipt_memory_status` to briefly explain enabled/disabled state, retention, and the actual `dataLocation`. Repeat when settings/location change or the user asks to save elsewhere. Local mode stores evidence on the MCP machine; hosted mode stores it on the server for that tenant. A clone on another machine does not transfer evidence, and memory does not sync to ZenMoney. If status is unavailable, say so; do not invent a location.
+- Never persist personal receipt evidence, category-candidate lists, or spending summaries in the repository, including ignored files, project handoff files, or `docs/evidence/` (sanitized engineering verification only). Use only managed receipt memory for confirmed groups. When disabled/unavailable, continue with current-context evidence without creating fallback files.
+- When candidates would be useful across devices, suggest an optional short ZenMoney transaction comment containing supported purpose labels, such as `Category candidate: Fresh vegetables`. Explain that this is remote financial data, independent of local-memory retention/deletion. Never copy raw receipts, product text, local paths, or memory exports into comments. Notes neither create categories nor count toward local review readiness.
+- Existing comments must be edited manually in ZenMoney, preserving existing text; do not create a duplicate expense for a note. For a new unmatched receipt, an optional `comment` (maximum 300 characters) must be shown verbatim alongside the exact financial preview and explicitly confirmed before apply. The same comment goes on every created part: use receipt-level wording. A changed note requires a fresh preview and confirmation. Never add notes silently.
+
 ## Workflow
 
 1. Immediately inspect the attached/referenced receipt using the host's normal image or PDF capability. Extract only:

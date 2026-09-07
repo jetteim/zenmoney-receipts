@@ -1,5 +1,25 @@
 # Decision log
 
+## D-018 — Map behavior ownership separately from deployment
+
+Decision: maintain a source-linked behavior architecture explanation alongside the existing C4/deployment and security views. Use a component diagram to separate host reasoning and advisory instructions from executable interfaces/domain rules, a receipt sequence to show handoffs, and a lookup table to locate each behavior's owner. Link stable source paths and function names rather than duplicating implementation listings.
+
+Reason: “MCP behavior” may originate in initialization prose, tool descriptions, input schemas, service logic, returned guidance, or the upstream API. A deployment diagram alone cannot distinguish these causes. The requested diagrams safely assume an audience of users/maintainers diagnosing the existing connector; no runtime redesign is needed.
+
+Consequences: document host-dependent instruction loading, confirmation as a caller assertion, code-calculated readiness followed by host-initiated review, and separate local/hosted storage. Keep this source map current when those boundaries change. Diagrams describe implementation, not evidence of live deployment or model adherence.
+
+## D-017 — Explain evidence locality and offer separate remote candidate notes
+
+Decision: add bounded storage self-awareness to the existing receipt/category skills, MCP instructions, and user documentation. At first relevant use in a session, report receipt-memory status, retention, and the actual returned location; repeat if settings/location change or the user asks to save elsewhere. Explain local MCP-machine storage versus hosted tenant-server storage. A clone does not carry personal evidence and receipt memory does not synchronize to ZenMoney.
+
+Decision: keep personal evidence, category candidates, and spending summaries outside the checkout, including ignored files and project handoff artifacts. `docs/evidence/` means sanitized engineering verification only. When managed memory is unavailable/disabled, continue using current-context evidence without a fallback store. This is agent guidance, not a new filesystem restriction.
+
+Decision: offer optional short ZenMoney transaction comments containing receipt-supported purpose labels when remote category-candidate tracking is useful. Explain remote storage and independence from local retention/deletion. Existing comments remain manual ZenMoney edits; only independently needed new-receipt creation can carry an optional note through its existing exact preview/confirmation flow. Show the comment verbatim alongside the financial preview; changed text requires a fresh preview and confirmation. Use receipt-level wording because one comment is repeated on each created part. Never duplicate an expense to save a note.
+
+Reason: the repository is shareable development context, while receipt evidence is private user data. Remote notes can preserve an advisory candidate across devices without uploading local evidence or adding a generic comment-write tool. Comments neither create taxonomy nor count toward the managed memory's readiness threshold.
+
+Consequences: no storage defaults, financial mutations, memory schema, or readiness calculations change. Hosts receive guidance; its delivery is covered by the existing MCP contract/smoke checks, but host-model adherence and live comment persistence require separate evaluation.
+
 ## D-001 — Private connection, public source
 
 Decision: distribute source for cloning while every ZenMoney connection remains private to the installing user. Public discoverability is optional and is not needed for a private hosted ChatGPT connection.

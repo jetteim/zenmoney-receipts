@@ -1,5 +1,7 @@
 # Architecture and security
 
+To trace a behavior to the host model, skills, MCP instructions, or executable code, use the [behavior architecture diagrams and source map](explanation/behavior-architecture.md).
+
 ## Local and direct-hosted design
 
 ```text

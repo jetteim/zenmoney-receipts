@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-08-22
+Last updated: 2026-09-07
 
 Current version: 0.7.0
 
@@ -12,11 +12,17 @@ The local connector supports the three primary workflows: one verified expense p
 
 Version 0.7.0 adds durable recovery inspection, privacy-safe diagnostics, safe category consolidation, a synthetic extraction contract pack, and a separately deployable multi-tenant HTTP/OAuth boundary. Hosted source and deployment artifacts are ready, but no production service or ChatGPT connection is claimed.
 
+`F-019` adds storage self-awareness to repository guidance, the receipt/category skills, and MCP instructions: explain the actual evidence location and retention at first relevant use, keep personal evidence outside the checkout, and offer optional ZenMoney comments for remote category-candidate notes. Existing comments remain manual edits in ZenMoney; new-receipt comments require their exact text alongside the confirmed financial preview. These are host guidance changes, not filesystem enforcement or automatic remote evidence synchronization.
+
+`F-020` adds [behavior architecture diagrams and a source map](../explanation/behavior-architecture.md): host reasoning, skills/workspace guidance, MCP prose versus schemas/handlers, deterministic service rules, backend interfaces, and local/hosted state. It includes a receipt sequence and diagnostic lookup without changing runtime behavior.
+
 ## Verification baseline
 
 - Offline unit/contract/adversarial tests, typecheck, bundle, stdio smoke, synthetic extraction evaluation, and repository validation are required on every change.
 - Historical live evidence: read-only sync, synthetic write/cleanup, one user-confirmed receipt creation, savings insights, and selected taxonomy create/update paths are recorded under `docs/evidence/` without financial payloads.
 - v0.7.0 evidence belongs in `docs/evidence/2026-08-22-v0.7.0-roadmap-completion.md`; it explicitly separates offline, read-only live, hosted-process, container, CI, and externally unverified results.
+- `F-019` validation: full offline `npm run check`, skill metadata validation, and `git diff --check`. The session's startup doctor built successfully and passed runtime/registration/storage checks but could not access a ZenMoney credential from this shell. No live comment write or host-model behavioral evaluation is claimed.
+- `F-020` validation: both Mermaid views rendered and visually inspected; local source links checked; offline schema inventory confirmed 35 local tools; `npm run check` passed (72 tests, one opt-in test skipped) and `git diff --check` passed. Startup doctor again could not access a credential in this shell; documentation work used no live financial calls.
 
 ## External setup state
 

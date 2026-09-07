@@ -1,5 +1,7 @@
 # C4 architecture views
 
+For interfaces, decision ownership, and a behavior-to-source lookup, start with [Where behavior comes from](../explanation/behavior-architecture.md). It separates host reasoning and loaded guidance from executable MCP rules and traces a receipt through those layers.
+
 ## System context
 
 The user owns the receipt and ZenMoney account. A local agent host or private ChatGPT connection extracts receipt facts and invokes this connector. The connector makes bounded calls to ZenMoney. Receipt bytes never cross the connector boundary.

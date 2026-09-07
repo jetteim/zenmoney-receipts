@@ -70,6 +70,14 @@ For saving suggestions:
 
 > Help me save money.
 
+## Storage self-awareness
+
+Personal receipt evidence belongs in the connector's private application-data storage, outside this repository. Do not save receipts, retained groups, category-candidate lists, or spending summaries in the checkout, even in ignored files. `docs/evidence/` holds sanitized engineering verification only.
+
+At first relevant use, the assistant should check receipt-memory status and explain whether it is enabled, its retention, and its actual location. In local mode, evidence stays on the machine running the MCP server; in hosted mode, it stays in that tenant's server storage. A clone on another machine does not bring your evidence with it, and this memory does not sync to ZenMoney.
+
+For category candidates you want available across devices, the assistant can suggest a short, optional ZenMoney transaction comment, such as `Category candidate: Fresh vegetables`. This is a remote note, subject to ZenMoney's account access and separate from local-memory deletion. Existing transaction comments must be edited in ZenMoney; new-receipt creation can include an explicitly previewed and confirmed comment. See [storage self-awareness and remote notes](docs/how-to/manage-receipt-memory.md#storage-self-awareness).
+
 ## Project status
 
 Version 0.7.0 completes every currently implementable roadmap slice: crash recovery, privacy-safe diagnostics, direct hosted HTTP/OAuth boundaries, synthetic extraction evaluation, and safe no-budget category consolidation. External ZenMoney app approval, hosted identity/operator configuration, ChatGPT staging installation, live hosted OAuth/write evidence, and authoritative budget-migration semantics remain explicit gates in [project status](docs/project/STATUS.md) and the [roadmap](docs/project/ROADMAP.md).
@@ -78,6 +86,7 @@ The latest sanitized E2E evidence is in [docs/e2e-test-log-2026-08-15.md](docs/e
 
 ## Documentation
 
+- Architecture: [where behavior comes from — diagrams and source map](docs/explanation/behavior-architecture.md)
 - Tutorial: [getting started](docs/getting-started.md)
 - How-to: [use with Codex](docs/how-to/use-with-codex.md), [manage receipt memory](docs/how-to/manage-receipt-memory.md), [install with an agent](docs/how-to/install-with-agent.md), [deploy direct hosted ChatGPT](docs/how-to/deploy-hosted.md), [troubleshoot safely](docs/how-to/troubleshoot.md), [continue development](docs/how-to/develop.md)
 - Reference: [CLI](docs/reference/cli.md), [MCP tools](docs/reference/mcp-tools.md), [receipt extraction contract](docs/reference/receipt-extraction-contract.md), [hosted configuration](docs/reference/hosted-configuration.md)
