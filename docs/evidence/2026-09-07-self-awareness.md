@@ -1,5 +1,11 @@
 # Self-awareness verification — 2026-09-07
 
+## F-024 explicit local preferences
+
+- `npm run check`: passed, including real MCP preview/confirmation with a backend that refuses financial calls; lifecycle, immutable plan, restart/replay, stale/expired/busy previews, private permissions, symlink/corrupt/oversized storage, invalid structured inputs and hosted isolation tests.
+- Edited skills passed metadata validation. No personal preference store was enabled or written; all mutation fixtures used temporary synthetic directories.
+- Output: `/tmp/zenmoney-f024-check.log`; no new metric/log/trace names. Rollback: purge through an exact confirmed preview if the user wants saved preferences removed, then revert F-024 and rebuild/restart. Reverting code alone leaves private application data in place.
+
 ## F-023 evidence coverage
 
 - `npm run check`: passed, 79 tests passed; read-only expiry, distinct counts, filtered/empty/truncated coverage and month bounds verified. `npm run doctor:live`: passed after the coverage changes; no live writes.

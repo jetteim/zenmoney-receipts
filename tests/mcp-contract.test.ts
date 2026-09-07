@@ -25,6 +25,9 @@ describe("MCP contract", () => {
     const result = await client.listTools();
     expect(result.tools.map((tool) => tool.name)).toEqual([
       "zenmoney_capabilities",
+      "zenmoney_preferences",
+      "zenmoney_preview_preferences",
+      "zenmoney_apply_preferences",
       "zenmoney_connection_status",
       "zenmoney_sync",
       "zenmoney_list_operation_recovery",
@@ -173,6 +176,7 @@ describe("MCP contract", () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
     const tools = await client.listTools();
+    expect(tools.tools.some(tool => tool.name.includes("preferences"))).toBe(false);
     const hostedNames = tools.tools.map((tool) => tool.name).filter((name) => name.includes("oauth") || name.includes("hosted_data"));
     expect(hostedNames).toEqual([
       "zenmoney_oauth_status",

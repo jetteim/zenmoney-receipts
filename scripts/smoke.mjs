@@ -3,6 +3,9 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
 const expectedTools = [
   "zenmoney_capabilities",
+  "zenmoney_preferences",
+  "zenmoney_preview_preferences",
+  "zenmoney_apply_preferences",
   "zenmoney_connection_status",
   "zenmoney_sync",
   "zenmoney_list_operation_recovery",

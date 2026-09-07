@@ -2,6 +2,7 @@
 
 | Value/capability | Feature | Contract or architecture impact | Verification evidence | State |
 | --- | --- | --- | --- | --- |
+| VS-03 / C-05 onboarding; VS-05 / C-17 evidence clarity | F-024 | Default-off structured local preferences with exact lifecycle controls | Lifecycle/conflict/permissions/adversarial tests; hosted isolation; full offline suite | Complete local-only |
 | VS-05 / C-17 evidence clarity; VS-06 / C-13 savings | F-023 | Distinct receipt coverage and transaction/display bounds | Empty/expired/filter/truncation fixtures; offline and read-only live checks | Complete |
 | VS-03 / C-05 onboarding | F-022 | Effective capability report without provider access | Local/hosted/failure fixtures; MCP contract; full offline check | Complete |
 | VS-03 / C-05 onboarding; VS-05 / C-17 evidence clarity | F-021 | Structured caller/server/upstream decision provenance | Provenance service tests; full offline check | Complete |

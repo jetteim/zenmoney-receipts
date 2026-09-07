@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     environment: "node",
     env: {
+      ZENMONEY_PREFERENCES_DIR: join(tmpdir(), `zenmoney-preferences-vitest-${process.pid}`),
       ZENMONEY_RECEIPT_MEMORY_DIR: join(
         tmpdir(),
         `zenmoney-receipts-vitest-${process.pid}`

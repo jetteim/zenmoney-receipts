@@ -4,11 +4,16 @@ export async function capabilityReport(input: {
   mode: "local" | "hosted";
   connection: () => Promise<{ configured: boolean }> | { configured: boolean };
   memory: () => Promise<ReceiptMemoryStatus>;
+  preferences?: () => Promise<{ available: boolean; enabled: boolean | null; revision: number | null }>;
 }) {
   const [connection, memory] = await Promise.allSettled([Promise.resolve().then(input.connection), Promise.resolve().then(input.memory)]);
   const configured = connection.status === "fulfilled" ? connection.value.configured : null;
   const state = memory.status === "fulfilled" ? memory.value : null;
   const storageAvailable = state !== null && !state.corrupt;
+  let preferences: { available: boolean; enabled: boolean | null; revision: number | null } | null = null;
+  if (input.mode === "local" && input.preferences) {
+    try { preferences = await input.preferences(); } catch { /* Report unavailable without leaking errors. */ }
+  }
   return {
     schemaVersion: 1,
     mode: input.mode,
@@ -33,6 +38,13 @@ export async function capabilityReport(input: {
       syncsToZenMoney: false
     },
     host: { loadedSkills: "unknown", model: "unknown", humanApprovalObservable: false, autonomousReviewScheduler: false },
+    preferences: {
+      supported: input.mode === "local",
+      availability: input.mode === "hosted" ? "unsupported-in-hosted-mode" : preferences?.available ? "available" : "unavailable",
+      enabled: preferences?.available ? preferences.enabled : null,
+      revision: preferences?.available ? preferences.revision : null,
+      financialRewrite: false
+    },
     remoteNotes: { newReceiptComment: true, existingCommentEdit: "manual-in-zenmoney", localPurgeRemovesComments: false },
     boundary: "Implemented actions remain conditional on valid inputs, current provider state, and confirmation. This report neither tests live access nor observes host skill loading."
   };

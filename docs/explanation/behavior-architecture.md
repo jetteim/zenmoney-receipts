@@ -147,7 +147,7 @@ The host has its own conversation, attachment, and retention behavior; this conn
 
 Follow the boundary where the behavior first appeared:
 
-1. **Before a tool call:** inspect user context, loaded skill, MCP instructions, and the host's interpretation. A correction in chat is not automatically a repository rule or persistent preference.
+1. **Before a tool call:** inspect user context, loaded skill, MCP instructions, and the host's interpretation. A correction in chat is not automatically a repository rule or persistent preference. [Local preferences](../reference/self-awareness.md#explicit-local-preferences) require their own exact confirmed lifecycle; inspect enabled effective values before attributing a decision to them.
 2. **In tool arguments:** the host selected those values. Missing date/account fields deliberately invoke server defaults; supplied values bypass that suggestion step.
 3. **In a tool result:** find the tool in [server.ts](../../src/server.ts), follow its handler into [service.ts](../../src/service.ts), then inspect the helper or backend call. Check structured flags and limits as well as prose `guidance`.
 4. **After the result:** compare the model's explanation/action with the actual returned data. A `ready` flag does not itself run another tool, and a preview does not write to ZenMoney.
