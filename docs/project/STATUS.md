@@ -1,6 +1,6 @@
 # Project status
 
-Last updated: 2026-09-07
+Last updated: 2026-09-09
 
 Current version: 0.7.0
 
@@ -12,6 +12,8 @@ Self-awareness implementation: `F-021` provenance, `F-022` capabilities, `F-023`
 
 User-requested pause after F-024. Resume with F-025 guidance/version diagnostics, then F-026 completion boundaries. Continue to verify and commit each capability separately; no live financial writes are authorized.
 
+The 2026-09-09 roadmap assessment follow-up tightens F-025/F-026 acceptance, adds individual traceability and external-gate next actions, and introduces F-027 as a planned synthetic host-workflow evaluation. This is planning only (D-020); no remaining capability is newly implemented and the pause is preserved. External operators/registrants remain unassigned.
+
 The local connector supports the three primary workflows: one verified expense per receipt-supported category; category review and safe taxonomy changes informed by opt-in narrow receipt evidence; and bounded read-only savings suggestions. Missing receipt dates/accounts are marked suggestions in the exact preview. Every ZenMoney write remains previewed, explicitly confirmed, concurrency-checked, journaled, and post-write verified.
 
 Version 0.7.0 adds durable recovery inspection, privacy-safe diagnostics, safe category consolidation, a synthetic extraction contract pack, and a separately deployable multi-tenant HTTP/OAuth boundary. Hosted source and deployment artifacts are ready, but no production service or ChatGPT connection is claimed.
@@ -21,6 +23,8 @@ Version 0.7.0 adds durable recovery inspection, privacy-safe diagnostics, safe c
 `F-020` adds [behavior architecture diagrams and a source map](../explanation/behavior-architecture.md): host reasoning, skills/workspace guidance, MCP prose versus schemas/handlers, deterministic service rules, backend interfaces, and local/hosted state. It includes a receipt sequence and diagnostic lookup without changing runtime behavior.
 
 ## Verification baseline
+
+- 2026-09-09 planning revision: `npm run check` passed (86 tests passed, one opt-in test skipped), including build, 39-tool MCP smoke, synthetic extraction evaluation, and repository validation. Local link targets, new feature traceability rows, roadmap order, and `git diff --check` passed. Temporary offline output: `/tmp/zenmoney-roadmap-improvements-check.log`. Setup dry-run passed; startup doctor built successfully but could not access a ZenMoney credential from this shell. No current live connectivity, deployment, or new feature completion is claimed. Rollback: revert the four project-document changes; no runtime or stored-data migration.
 
 - Self-awareness verification is recorded in [2026-09-07 evidence](../evidence/2026-09-07-self-awareness.md). F-021 passed the full offline suite and the read-only live doctor outside the sandbox; no live writes were made.
 
@@ -40,11 +44,9 @@ Version 0.7.0 adds durable recovery inspection, privacy-safe diagnostics, safe c
 
 ## Next actionable item
 
-Complete the remaining self-awareness capabilities in `Ready / Now`, then continue with one of:
+On a request to resume implementation, select F-025 and then F-026 from `Ready / Now`, using their expanded acceptance packets. After F-026, select the named host/model and isolated evaluation method needed to promote F-027 from `Planned / Next`.
 
-1. provide the external prerequisites and execute `F-014` staging;
-2. obtain authoritative ZenMoney budget-write semantics for `F-016B`; or
-3. add a new feature to `ROADMAP.md` with outcome, acceptance evidence, dependencies, and risks.
+External work remains a separate choice: assign an operator and satisfy F-007 before claiming F-014 live readiness; obtain authoritative budget semantics before reopening F-016B; reopen F-014P only after an explicit public-distribution decision and verified private deployment. See the roadmap for each owner, next action, and reopening evidence.
 
 ## Known limits
 

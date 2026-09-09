@@ -2,6 +2,11 @@
 
 | Value/capability | Feature | Contract or architecture impact | Verification evidence | State |
 | --- | --- | --- | --- | --- |
+| VS-03 / C-05 onboarding; VS-04 / C-09 diagnosis | F-025 | Build/contract identity and caller-reported guidance comparisons; capability/server/build boundary, no new storage | Required: revision/metadata/build identity fixtures, local/hosted MCP contract, full offline check; ROADMAP.md defines cases | Ready; implementation paused after F-024 |
+| VS-01 / C-02 verified completion; VS-05 / C-17 evidence clarity | F-026 | Separate finance/memory/comment completion in receipt service and host guidance; preserve financial recovery | Required: preview, auxiliary failure, split-comment, replay/restart, compensation/manual-review fixtures; full offline check | Ready after F-025; not implemented |
+| VS-01 / C-11 extraction quality and C-02 verified completion; VS-05 / C-17 evidence clarity | F-027 | Synthetic host evaluation with isolated fixture backend; no production telemetry or storage | Required: at least 12 scenarios × 3 runs, named host/model/build, ground truth, correction/completion/time/safety metrics | Planned after F-026; host/harness selection pending |
+| VS-05 / C-16 consolidation | F-016B | Future complete budget-reference migration; F-016 keeps fail-closed blocker | Required: authoritative semantics, reviewed plan, fixture/restart/conflict tests, authorized live evidence | Externally gated; budget support not implemented |
+| VS-03 / C-10, C-14 hosted access | F-014P | Optional public service ownership and publication controls beyond private F-014 | Required: owned and dated HOSTED_PUBLICATION_CHECKLIST.md evidence; F-014 closed | Optional; no publication decision or owner |
 | VS-03 / C-05 onboarding; VS-05 / C-17 evidence clarity | F-024 | Default-off structured local preferences with exact lifecycle controls | Lifecycle/conflict/permissions/adversarial tests; hosted isolation; full offline suite | Complete local-only |
 | VS-05 / C-17 evidence clarity; VS-06 / C-13 savings | F-023 | Distinct receipt coverage and transaction/display bounds | Empty/expired/filter/truncation fixtures; offline and read-only live checks | Complete |
 | VS-03 / C-05 onboarding | F-022 | Effective capability report without provider access | Local/hosted/failure fixtures; MCP contract; full offline check | Complete |

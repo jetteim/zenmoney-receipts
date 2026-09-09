@@ -10,10 +10,41 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 
 ## Ready / Now
 
-- `F-025` guidance/version diagnostics: identify running build/contract and compare explicitly reported host guidance without claiming to inspect the host. Depend on capability report. Acceptance: current/stale/unknown and malformed report tests.
-- `F-026` completion boundaries: distinguish preview, verified finance, retained evidence, and verified remote comments. Depend on receipt apply and memory results. Acceptance: success, disabled/unavailable memory, replay and failed-write cases.
+Order remains F-025, then F-026. D-019 records authorization for all six self-awareness capabilities and one verified commit per capability; the pause after F-024 remains until the user asks to resume implementation. The 2026-09-09 roadmap revision changes planning only. Acceptance below is required future evidence, not a claim of implementation.
 
-All six self-awareness capabilities are user-authorized for implementation, with one verified commit per capability. Traceability: VS-03 / C-05 private onboarding, VS-04 / C-09 diagnosis, VS-05 / C-17 evidence clarity.
+### F-025 — Guidance/version diagnostics
+
+- User outcome: diagnose an outdated running connector or reported host guidance and identify what needs rebuilding, restarting, or refreshing without claiming to inspect the host.
+- Delivery: an additive read-only diagnostic contract alongside the capability report. Report package version, running build identity, contract revision, and expected guidance revisions separately. Capture build identity during build from declared source inputs so same-version source changes are distinguishable; never identify a running process from the current checkout alone. Missing build metadata is explicitly unknown.
+- Comparison rules: accept only bounded structured caller reports of known guidance IDs/revisions. Exact expected revision is `current`; a recognized older revision is `stale`; absent, unrecognized, or newer revisions are `unknown` with a reason. Revision comparison is not a claim of runtime compatibility or actual host loading. Reject malformed/oversized reports without echoing arbitrary input. A build identity mismatch is distinct from guidance revision status.
+- Acceptance evidence: fixtures for equal/older/newer/unrecognized/absent revisions, partial reports, malformed/oversized input, and missing metadata; two builds with the same package version but changed declared source inputs have different identities; a running build keeps its identity after checkout changes. Local/hosted MCP calls expose consistent bounded output without provider calls or writes. Full `npm run check` and `git diff --check` pass.
+- Dependencies: F-022 capability report, build pipeline, and installed workflow guidance. Source owners: [capabilities](../../src/capabilities.ts), [version](../../src/version.ts), [MCP server](../../src/server.ts), and [build script](../../package.json). Verification hooks: `tests/capabilities.test.ts`, `tests/mcp-contract.test.ts`, and build fixtures.
+- Architecture/traceability: VS-03 / C-05 onboarding; VS-04 / C-09 diagnosis. Update the [self-awareness reference](../reference/self-awareness.md) and [behavior source map](../explanation/behavior-architecture.md); no new container or storage boundary is planned.
+- Risks/rollback: reported guidance may be incomplete or false; expose its caller-reported origin. Never inspect host files or retain reports. Revert the additive feature, rebuild, and restart; no data migration.
+
+### F-026 — Completion boundaries
+
+- User outcome: know whether a receipt was only previewed, its financial operation verified, evidence retained, and an optional remote comment actually observed after the write.
+- Delivery: additive, separate completion results for finance, receipt memory, and remote comments across category, reconciliation, and creation flows. Preserve existing result fields and financial validation. A preview describes intended effects only. Memory disabled/unavailable/no-groups outcomes must not be reported as evidence retained.
+- Comment evidence: for new-receipt comments, compare the exact previewed text with every created part returned by the post-write read. Distinguish not requested/not applicable, verified, mismatch, and unavailable evidence. A financial `verified: true` alone never proves comment persistence. Existing-comment editing remains manual; do not add a repair write or duplicate expense.
+- Failure/replay boundaries: preserve existing financial compensation and manual-review rules. Auxiliary evidence/comment status must not trigger a new financial action. Replay describes the previously verified result and that no new write occurred, without implying a fresh provider verification. A failed or uncertain write must not receive a successful completion claim; inspect the durable operation record before recovery.
+- Acceptance evidence: category/no-op, reconciliation, and creation fixtures; preview without writes; memory stored/disabled/unavailable/no-groups; exact, omitted, altered, and partially matching split comments; cached replay; restart recovery; compensated failure and incomplete rollback/manual review. Verify that auxiliary reporting adds no writes or duplicate records. Full `npm run check` and `git diff --check` pass; use the read-only live doctor if implementation changes ZenMoney reads. Live comment persistence remains a separate, freshly authorized gate.
+- Dependencies: F-010/F-011/F-012 receipt workflows, F-005 operation journal, F-017 memory, and F-019 comment guidance; follows F-025 under D-019. Source owners: [service](../../src/service.ts), [receipt results](../../src/receipt-operations.ts), and [receipt memory](../../src/receipt-memory.ts). Verification hooks: `tests/receipt-operations-service.test.ts`, `tests/receipt-memory.test.ts`, and `tests/mcp-contract.test.ts`.
+- Architecture/traceability: VS-01 / C-02 verified receipt handling; VS-05 / C-17 evidence clarity. Update the receipt sequence in the [behavior source map](../explanation/behavior-architecture.md), the [self-awareness reference](../reference/self-awareness.md), and receipt workflow guidance; no new persistence boundary is planned.
+- Risks/rollback: broad success wording can hide incomplete evidence; host behavior needs F-027 evaluation. Revert the additive reporting change, rebuild, and restart; do not undo verified expenses or purge retained evidence as a code rollback.
+
+## Planned / Next
+
+### F-027 — Evaluate receipt workflow outcomes
+
+- User outcome: understand how reliably the named host completes receipt workflows, where corrections are needed, and whether its completion claims match observed results.
+- State/dependencies: planned after F-025/F-026, using F-008 synthetic contract fixtures and F-021/F-023 provenance/coverage. Not yet in `Ready / Now`: select an available host/model, an isolated fixture backend, and a repeatable execution method before promotion. No live write or paid evaluation is authorized by this entry.
+- Scope: a bounded baseline of at least 12 wholly synthetic image/PDF scenarios, each run three times. Include exact allocations, discounts, missing date/account, ambiguous match, unsupported evidence, confirmation refusal, memory disabled/unavailable, comment mismatch, replay, and failed-write reporting. Use known expected tool outcomes and a fixed scoring rubric; keep host interpretation separate from deterministic contract results.
+- Measures: report exact extraction/allocation accuracy against ground truth; cases requiring correction / attempted cases; verified completions / eligible cases; time from receipt presentation to final outcome (report failures/timeouts separately); unsupported completion claims / completion claims; duplicate writes and writes without confirmation. Record sample size, exclusions, build/guidance/model identity, date, and tool environment.
+- Acceptance evidence: repeatable run instructions, synthetic fixtures, per-case scores and aggregate denominators, and a prioritized list of observed failures. Zero duplicate writes, writes without confirmation, or unsupported success claims is the safety gate; failures block a passing evaluation and create remediation work. Accuracy and duration establish a baseline, not an invented improvement target. Record model/host execution as blocked if unavailable; deterministic simulation alone cannot close this feature.
+- Owner/promotion: project maintainer selects the host and reviews the fixture/rubric packet after F-026. No external operator is assumed. Representative real-receipt evaluation needs a separately agreed consent, storage, retention, and sampling plan outside the checkout; this synthetic baseline cannot establish real-world OCR accuracy.
+- Architecture/traceability: VS-01 / C-11 extraction quality and C-02 verified completion; VS-05 / C-17 evidence clarity. Extend the existing evaluation boundary in [behavior architecture](../explanation/behavior-architecture.md); no production component or telemetry collection. Dependencies include a separate host evaluation harness, not merely `npm run eval:receipts`.
+- Risks/rollback: small synthetic samples and model variability limit generalization. Store only synthetic fixtures and sanitized engineering results in the repository, never personal receipts, candidates, or financial summaries. Remove the evaluation artifacts to roll back; no production state changes.
 
 ## Externally gated
 
@@ -22,25 +53,29 @@ All six self-awareness capabilities are user-authorized for implementation, with
 - Repository outcome: complete. Direct Streamable HTTP `/mcp`, protected-resource metadata, OAuth bearer validation, tenant-bound sessions, encrypted ZenMoney credentials, owned-client link/unlink lifecycle, Docker/Render deployment, policy templates, threat model, and publication checklist are implemented.
 - Remaining gates: choose an operator and budget; configure an external OAuth identity provider; obtain an owned ZenMoney OAuth client and verify its current PKCE/refresh/revocation contract; publish real privacy/terms/support contacts; deploy staging; complete MCP Inspector and private ChatGPT discovery; establish incident response and operator telemetry.
 - Evidence needed to close deployment: hosted health/auth/discovery logs, tenant isolation tests against staging, one freshly authorized live link/read, and a human-recorded ChatGPT tool-discovery result.
+- Owner: service operator unassigned; project maintainer must name one before deployment. Next action: record operator, budget, identity provider, and staging configuration plan using the [deployment guide](../how-to/deploy-hosted.md). Mock/local preparation can proceed independently; live owned-client readiness depends explicitly on F-007. Reopen staging execution when prerequisites and its plan are reviewable; close only with the dated evidence above. Risk: external exposure and ongoing cost; repository completion is not deployment approval.
 
 ### F-007 — Live ZenMoney OAuth compatibility
 
 - Repository outcome: encrypted per-tenant authorization, refresh, revocation, relinking, S256 PKCE, one-time state, and tests are complete.
 - Blocker: ZenMoney application registration/approval and authoritative live confirmation of its current OAuth contract.
 - Rule: do not silently remove PKCE or share a personal access token across tenants.
+- Owner: owned-client registrant unassigned; project maintainer must identify the registrant. Next action: obtain application approval and authoritative provider contract evidence. Reopen compatibility verification when client/redirect configuration and a credential-safe test plan are available. Close with dated authorization-code/state/PKCE, refresh, revocation, and relink evidence; failures continue to block F-014 live readiness.
 
 ### F-016B — Budget-aware category consolidation
 
-- Repository outcome: complete for transactions, reminders, and reminder markers. The connector performs complete-reference discovery, exact preview, durable journaling, stale-reference checks, source retirement, verification, and concurrency-safe compensation.
+- Prerequisite F-016 is repository-complete for transactions, reminders, and reminder markers. F-016B budget support is not implemented. The connector performs complete-reference discovery, exact preview, durable journaling, stale-reference checks, source retirement, verification, and concurrency-safe compensation for the supported references.
 - Blocker: the pinned ZenMoney backend exposes budgets read-only and the public API documentation does not establish safe move/delete semantics.
 - Current behavior: if a source category has any budget reference, preview returns `applyAvailable: false` and no apply token. Clear or move the budget in ZenMoney, then create a fresh preview.
 - Evidence needed for budget support: authoritative schema/semantics, fixture tests, restart/conflict tests, and separately authorized live create/migrate/cleanup evidence.
+- Owner: project maintainer for contract review; provider confirmation is external. Next action: obtain authoritative budget move/delete and conflict semantics, then review the pinned backend against them. Reopen implementation only with a reviewed complete migration/compensation plan. No partial merge, guessed semantics, or automatic budget clearing is allowed.
 
 ### F-014P — Public distribution
 
-- Optional future outcome: publish the already hosted connector beyond a private ChatGPT setup.
+- Optional future outcome: publish the connector beyond a verified private hosted setup after F-014 is closed.
 - Dependencies: every `F-014` gate plus production privacy/terms/support URLs, abuse controls, deletion process, service ownership, SLOs, incident response, and OpenAI review requirements current at submission time.
 - Boundary: public discoverability is not required for the user's private hosted setup.
+- Owner: publication sponsor/operator unassigned. Next action only after an explicit public-distribution decision: assign owners and dated evidence to the [publication checklist](HOSTED_PUBLICATION_CHECKLIST.md). Reopen after that decision and F-014 completion; public release remains blocked until every checklist gate is satisfied. No submission or publication is authorized by this roadmap.
 
 ## Completed
 

@@ -1,5 +1,15 @@
 # Decision log
 
+## D-020 — Make the remaining roadmap executable before expanding scope
+
+Decision (2026-09-09): interpret the request to fix and improve the roadmap assessment as a planning revision. Keep F-025 then F-026 and the recorded pause after F-024; this revision does not resume feature implementation or authorize live writes, deployment, or spending.
+
+Decision: specify independent build/contract/guidance identities for F-025 and independent financial/evidence/comment completion claims for F-026. These are future acceptance requirements, not descriptions of current runtime behavior. Preserve financial validation and recovery semantics; auxiliary reporting must not introduce repair writes, duplicate expenses, or compensation of an otherwise verified expense.
+
+Decision: add F-027 as a planned synthetic host-workflow baseline after F-026. Promote it only after selecting the host/model, isolated backend, and repeatable execution method. Require explicit metrics and zero observed safety violations for a passing evaluation; do not claim real-receipt OCR accuracy from synthetic results. Personal evidence remains outside the checkout.
+
+Reason: the assessment found incomplete acceptance definitions, missing active-feature traceability, external gates without next actions/owners, and no host-level outcome baseline. Record unassigned external ownership honestly rather than inferring commitments. Existing F-007/F-014/F-016B gates remain in force; F-014P stays optional.
+
 ## D-019 — Observable self-awareness, one capability per commit
 
 Decision: implement F-021 through F-026 sequentially with additive structured contracts and a verified commit per capability. Attribute only server-observable decisions; caller inputs are not independently verified receipt facts. Keep human consent and host skill loading explicitly outside server observation.
