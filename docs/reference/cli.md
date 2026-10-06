@@ -14,7 +14,7 @@ Run from source with `npm run doctor` or `npm run doctor:live`.
 
 ## `zenmoney-receipts schema`
 
-Returns the live MCP tool names, descriptions, input schemas, and safety annotations without contacting ZenMoney.
+Returns the live MCP tool names, descriptions, input schemas, and safety annotations without contacting ZenMoney. The `localCommands` field also describes the local-only evidence correction command.
 
 ## `zenmoney-receipts support-bundle`
 
@@ -33,8 +33,11 @@ All receipt-memory commands return a versioned JSON envelope and never contact o
 | `memory disable [--retention-days 30..730] [--confirm]` | Preview or apply disabled recording; existing evidence remains until expiry/deletion. |
 | `memory delete RECORD_ID [--confirm]` | Preview or delete one exact local record. |
 | `memory purge [--confirm]` | Preview or purge all local evidence; also recovers corrupt state. |
+| `memory correct [--confirm --plan-digest DIGEST]` | Read a bounded JSON request from stdin; preview or apply exact purpose-label and price-basis/coverage corrections. Amounts, item counts, categories and identity cannot change. |
 
-Mutations without `--confirm` make no change and return the exact preview. With `--confirm`, the CLI creates and applies a fresh equivalent short-lived preview in the same process. Settings changes can expire records when retention is reduced; delete and purge are destructive local operations. See [Manage local receipt memory](../how-to/manage-receipt-memory.md).
+Mutations without `--confirm` make no change and return the exact preview. With `--confirm`, settings, delete and purge create and apply a fresh equivalent short-lived preview in the same process. `memory correct` instead requires the same stdin request, its expected state revision, and the exact `--plan-digest` returned by preview. Correction input is capped at 262144 bytes, 1000 records and 10 renames per record. Settings changes can expire records when retention is reduced; delete and purge are destructive local operations. See [Manage local receipt memory](../how-to/manage-receipt-memory.md).
+
+Memory search and review readiness distinguish `amountBasis`, `evidenceCoverage` and `totalsByAmountBasis`. `amountsComparable: false` flags unknown or mixed price bases; the compatibility `totalAmount` is only a sum of recorded evidence, not complete spending.
 
 ## `node scripts/install.mjs`
 

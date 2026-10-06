@@ -10,6 +10,8 @@ Deployment targets: private single-user local stdio; repository-ready direct hos
 
 ## Current outcome
 
+F-028 is complete: bounded local CLI correction of purpose labels and explicit price-basis/coverage annotations, without financial writes. The authorized local repair was applied and independently re-read through MCP and the rebuilt CLI. Unknown historical pricing remains unknown. The F-025/F-026 pause is unchanged. Long-running MCP processes need a restart to load the new aggregate annotations; the current CLI already exposes them. See [sanitized verification](../evidence/2026-09-30-local-evidence-correction.md).
+
 Self-awareness implementation: `F-021` provenance, `F-022` capabilities, `F-023` coverage, and `F-024` local structured preferences are implemented; `F-025` and `F-026` are next. Preferences are default-off, local-only, explicitly confirmed and advisory; no live preference values were enabled or stored during development.
 
 User-requested pause after F-024. Resume with F-025 guidance/version diagnostics, then F-026 completion boundaries. Continue to verify and commit each capability separately; no live financial writes are authorized.
@@ -25,6 +27,8 @@ Version 0.7.0 adds durable recovery inspection, privacy-safe diagnostics, safe c
 `F-020` adds [behavior architecture diagrams and a source map](../explanation/behavior-architecture.md): host reasoning, skills/workspace guidance, MCP prose versus schemas/handlers, deterministic service rules, backend interfaces, and local/hosted state. It includes a receipt sequence and diagnostic lookup without changing runtime behavior.
 
 ## Verification baseline
+
+- F-028 pre-publication recheck (2026-10-06): full `npm run check` passed on the current tree with F-029 integrated: 91 application tests passed, one hosted test skipped, correction CLI/MCP smoke, receipt fixtures, six skill-evaluator tests and skill packaging checks. The user authorized commit and push; no personal receipt data is included. See [sanitized evidence](../evidence/2026-09-30-local-evidence-correction.md).
 
 - 2026-09-09 planning revision: `npm run check` passed (86 tests passed, one opt-in test skipped), including build, 39-tool MCP smoke, synthetic extraction evaluation, and repository validation. Local link targets, new feature traceability rows, roadmap order, and `git diff --check` passed. Temporary offline output: `/tmp/zenmoney-roadmap-improvements-check.log`. Setup dry-run passed; startup doctor built successfully but could not access a ZenMoney credential from this shell. No current live connectivity, deployment, or new feature completion is claimed. Rollback: revert the four project-document changes; no runtime or stored-data migration.
 

@@ -11,6 +11,8 @@ import { credentialStatus } from "./credentials.js";
 import { createServer } from "./server.js";
 import { ZenMoneyReceiptService } from "./service.js";
 import { ReceiptMemoryController } from "./receipt-memory.js";
+import { ReceiptMemoryStore } from "./receipt-memory-store.js";
+import { correctionContract } from "./receipt-memory-correction.js";
 import { buildSupportBundle } from "./support-bundle.js";
 import { OperationJournal } from "./operation-journal.js";
 import { PrivacySafeEventStore } from "./observability.js";
@@ -241,6 +243,7 @@ async function schema(): Promise<number> {
       command: "schema",
       version: VERSION,
       ok: true,
+      localCommands: [correctionContract],
       tools: result.tools.map(({ name, title, description, inputSchema, annotations }) => ({
         name,
         title,
@@ -313,6 +316,28 @@ async function memory(args: string[]): Promise<number> {
     if (parsed.confirm || parsed.positionals.length > 0) throw new Error("memory status takes no arguments");
     return respond(await controller.status());
   }
+  if (action === "correct") {
+    requireAllowedOptions(parsed, ["--plan-digest"]);
+    if (parsed.positionals.length > 0 || process.stdin.isTTY) throw new Error("memory correct requires JSON on stdin");
+    const digest = parsed.values.get("--plan-digest");
+    if (parsed.confirm !== (digest !== undefined)) throw new Error("--confirm and --plan-digest must be supplied together");
+    if (digest !== undefined && !/^[a-f0-9]{64}$/.test(digest)) throw new Error("invalid correction plan digest");
+    const chunks: Buffer[] = [];
+    let size = 0;
+    for await (const chunk of process.stdin) {
+      const bytes = Buffer.from(chunk);
+      size += bytes.length;
+      if (size > 262144) throw new Error("correction request exceeds 262144 bytes");
+      chunks.push(bytes);
+    }
+    let request: unknown;
+    try { request = JSON.parse(Buffer.concat(chunks).toString("utf8")); }
+    catch { throw new Error("correction request must be valid JSON"); }
+    const store = new ReceiptMemoryStore();
+    return respond(digest === undefined
+      ? await store.previewCorrection(request)
+      : await store.applyCorrection(request, digest, true));
+  }
   if (action === "search") {
     requireAllowedOptions(parsed, ["--query", "--category-id", "--month-from", "--month-to", "--limit"]);
     if (parsed.confirm || parsed.positionals.length > 0) throw new Error("memory search accepts only filter options");
@@ -359,7 +384,7 @@ async function memory(args: string[]): Promise<number> {
     return respond(await controller.applyPurge({ previewToken: preview.previewToken, confirmed: true }));
   }
   throw new Error(
-    "Usage: zenmoney-receipts memory <status | search | get ID | enable | disable | delete ID | purge> [options] [--confirm]"
+    "Usage: zenmoney-receipts memory <status | search | get ID | enable | disable | delete ID | purge | correct> [options] [--confirm]"
   );
 }
 

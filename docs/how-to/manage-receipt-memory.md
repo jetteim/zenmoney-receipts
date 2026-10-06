@@ -55,6 +55,20 @@ All commands return JSON. Search is aggregate and bounded. Purpose labels are re
 
 The MCP equivalents are `zenmoney_receipt_memory_status`, `zenmoney_receipt_memory_search`, and `zenmoney_receipt_memory_get`.
 
+Search and review readiness expose `amountBasis`, `amountsComparable`, `totalsByAmountBasis`, and `evidenceCoverage`. The legacy `totalAmount` is a sum of recorded evidence, not complete spending. Compare monetary values only when `amountsComparable` is true; partial coverage still limits the conclusion. Older records and new records without explicit annotations have unknown price basis and coverage. Missing metadata never establishes whether discounts were included.
+
+## Correct labels and evidence annotations
+
+Use the local CLI to correct supported purpose labels or annotate known price basis and coverage. This command cannot change amounts, item counts, category assignments, receipt identity, or retention. It does not contact ZenMoney. Do not relabel a historical category merely because another category would be preferable today, or split a combined food group without its original allocation evidence.
+
+`node dist/cli.js schema` includes the `memory.correct` input contract. Supply JSON on stdin containing the current `expectedRevision` and a bounded `corrections` array. Each entry identifies a `recordId` and supplies one or more of: `amountBasis` (`unknown`, `before-discounts`, `after-discounts`), `coverage` (`unknown`, `partial`, `complete`), or exact `renames` with `from` and `to` purposes. Unknown fields are rejected. Keep real correction requests outside the checkout; prefer process stdin without a saved file.
+
+Preview with `node dist/cli.js memory correct`. Inspect the exact before/after records, then submit the same input with `--confirm --plan-digest DIGEST`, using the returned digest. An existing explicit instruction to perform the described local repair can supply authorization; the command still checks the exact plan and state revision. Concurrent changes require a fresh preview. After apply, re-read the affected records and check `verified: true`.
+
+Apply temporarily creates a private `receipt-memory.rollback.json` beside the managed state, writes atomically, verifies the result, and removes the rollback copy after success. On a failed write it restores only an unchanged source or its own proposed state; it never overwrites an unrelated concurrent edit. An interrupted correction can leave the rollback copy. Stop further corrections, inspect both managed files, and recover under the same exclusive lock before deleting that copy. Do not purge the main state while leaving this recovery copy behind.
+
+Rebuild after changing the implementation and restart long-running MCP hosts to load the new summary annotations. Local CLI calls use the current build immediately; changing a stored record does not hot-reload an older server process.
+
 ## Change retention or stop recording
 
 Preview before confirming:
@@ -98,6 +112,6 @@ Before uninstalling, run the confirmed purge if you want all retained evidence r
 
 Tests or managed deployments may set `ZENMONEY_RECEIPT_MEMORY_DIR` to an explicit directory before starting the process.
 
-The directory is mode `0700` and the atomic state file is mode `0600` on POSIX systems. The file is not application-encrypted in this local single-user release; it relies on OS account and disk protection. It stores only approved purpose, current category ID, receipt month, item count, exact group subtotal, and ZenMoney instrument. It stores a one-way receipt key for idempotency, never the transaction ID itself. It never stores receipt images/PDFs, OCR, merchant or product names, brands, SKUs, credentials, or raw ZenMoney responses.
+The directory is mode `0700` and the atomic state file is mode `0600` on POSIX systems. The file is not application-encrypted in this local single-user release; it relies on OS account and disk protection. It stores only approved purpose, current category ID, receipt month, item count, exact group subtotal, ZenMoney instrument, and optional finite price-basis/coverage annotations. It stores a one-way receipt key for idempotency, never the transaction ID itself. It never stores receipt images/PDFs, OCR, merchant or product names, brands, SKUs, credentials, or raw ZenMoney responses.
 
 If `memory status` reports corrupt content or an oversized file, reads fail closed. Inspect the purge preview and confirm it to reset the local store; the financial receipt workflow continues and reports memory as unavailable rather than undoing a verified ZenMoney write. An unsafe shared/wrong-owner storage directory is not automatically chmodded or purged: move the store to a dedicated current-user `0700` directory first.

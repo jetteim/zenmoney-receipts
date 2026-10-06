@@ -18,6 +18,16 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 - Validation: complete offline `npm run check`, package/metadata checks, fresh-run simulation/error tests and bootstrap projection/drift verification. No live mutation or actual model baseline is claimed.
 - State: complete as skill/evaluator infrastructure; full offline `npm run check` passed on the isolated skill-maintenance snapshot on 2026-10-06 (86 application tests, 1 hosted test skipped; build, CLI/MCP smoke, fixture and six runner checks). Actual host/model behavior remains unverified and F-027 remains planned.
 
+
+### F-028 — Correct local evidence consistency
+
+- User outcome: repair supported local purpose labels and distinguish known, unknown, and mixed price bases without rewriting financial history.
+- Acceptance: exact no-write preview; strict bounded stdin input; revision and plan-digest checks; private temporary rollback copy; atomic write and read-back verification; reject amount/category/identity changes and purpose collisions; expose basis-separated sums and partial/unknown coverage. Full offline checks and sanitized live-local verification required.
+- Dependencies/traceability: F-017, F-023; VS-05 / C-17 evidence clarity. Named repair takes precedence without resuming F-025/F-026.
+- Risks: source receipts may be unavailable; never infer missing price basis, split mixed groups, or change historical category facts. Old running MCP processes need restart for new aggregate annotations.
+- Rollback: automatic in-lock restoration on a failed correction; temporary recovery copy stays only if recovery cannot be verified. Revert code independently of data annotations.
+- State: complete; offline checks and authorized local correction verified. See [sanitized evidence](../evidence/2026-09-30-local-evidence-correction.md). Long-running MCP processes still need restart for the additive aggregate annotations.
+
 ## Ready / Now
 
 Order remains F-025, then F-026. D-019 records authorization for all six self-awareness capabilities and one verified commit per capability; the pause after F-024 remains until the user asks to resume implementation. The 2026-09-09 roadmap revision changes planning only. Acceptance below is required future evidence, not a claim of implementation.

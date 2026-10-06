@@ -6,6 +6,15 @@ Decision (2026-10-06): the user authorized all skill-review actions. Implement F
 
 Publication follow-through (2026-10-06): the user explicitly requested commits and pushes. Commit F-029 independently of pre-existing receipt-memory correction work, verify the staged tree and publish that maintenance commit. Keep unrelated local changes in place.
 
+
+## D-021 — Correct local evidence without inventing history
+
+Decision (2026-09-29): the explicit local-evidence repair request authorizes a bounded correction command and the supported local data correction, without another conversational confirmation. Preserve exact previews, state revision and digest binding, file privacy, atomic writes and verification. Do not write ZenMoney or alter amounts, item counts, category assignments, identity, receipt dates, or retention.
+
+Add optional finite amount-basis and coverage annotations compatibly to schema v1. Missing historical annotations mean unknown. Keep the existing numeric total as recorded evidence for compatibility; expose basis-separated totals and a comparability flag in search/readiness. Neither complete coverage nor a price basis is inferred from a purpose label.
+
+Corrections are CLI-local, not a new hosted/MCP mutation. A temporary rollback copy lives beside the managed store during apply and is removed after verified success or verified restoration; an uncertain interruption leaves it for explicit recovery. Personal repair inputs and outputs stay out of the repository; fixtures and verification notes are synthetic or sanitized. The F-025/F-026 pause remains in force.
+
 ## D-020 — Make the remaining roadmap executable before expanding scope
 
 Decision (2026-09-09): interpret the request to fix and improve the roadmap assessment as a planning revision. Keep F-025 then F-026 and the recorded pause after F-024; this revision does not resume feature implementation or authorize live writes, deployment, or spending.

@@ -3,7 +3,7 @@ import { access, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ReceiptMemoryController } from "../src/receipt-memory.js";
 import {
@@ -38,6 +38,93 @@ async function enable(store: ReceiptMemoryStore, now = Date.now()): Promise<void
 }
 
 describe("receipt memory", () => {
+  it("previews and verifies local corrections without changing amounts, categories, identity or retention", async () => {
+    const directory = await root();
+    const store = new ReceiptMemoryStore(directory);
+    await enable(store);
+    const saved = await store.recordVerified({ transactionIds: ["correction-fixture"], receiptDate: "2026-09-01", instrument: 2, groups: [{ ...fruit, purpose: "Cold cuts" }] });
+    const path = join(directory, "receipt-memory.json");
+    const before = await readFile(path, "utf8");
+    const request = { expectedRevision: (await store.status()).revision!, corrections: [{ recordId: saved.recordId!, amountBasis: "before-discounts", coverage: "partial", renames: [{ from: "Cold cuts", to: "Processed meat" }] }] };
+    const preview = await store.previewCorrection(request);
+    expect(await readFile(path, "utf8")).toBe(before);
+    expect(JSON.stringify(preview)).not.toContain("receiptKey");
+    await expect(store.applyCorrection(request, "0".repeat(64), true)).rejects.toThrow("differs");
+    expect(await readFile(path, "utf8")).toBe(before);
+    expect(await store.applyCorrection(request, preview.planDigest, true)).toMatchObject({ verified: true, correctedRecordCount: 1, rollbackCopyRemoved: true });
+    const oldState = JSON.parse(before);
+    const next = JSON.parse(await readFile(path, "utf8"));
+    expect(next).toMatchObject({ enabled: oldState.enabled, retentionDays: oldState.retentionDays, revision: oldState.revision + 1 });
+    expect(next.records[0]).toMatchObject({ ...oldState.records[0], groups: [{ ...fruit, purpose: "Processed meat" }], amountBasis: "before-discounts", coverage: "partial" });
+    expect((await store.search({ limit: 10 })).purposes[0]).toMatchObject({ totalAmount: fruit.amount, amountBasis: "before-discounts", amountsComparable: true, evidenceCoverage: "partial" });
+    await expect(access(join(directory, "receipt-memory.rollback.json"))).rejects.toThrow();
+    await expect(store.applyCorrection(request, preview.planDigest, true)).rejects.toThrow("changed");
+  });
+
+  it("separates price bases and exposes unknown historical coverage in search and readiness", async () => {
+    const store = new ReceiptMemoryStore(await root());
+    await enable(store);
+    for (const id of ["basis-a", "basis-b", "basis-c"]) {
+      await store.recordVerified({ transactionIds: [id], receiptDate: "2026-09-01", instrument: 2, groups: [fruit] });
+    }
+    const recordId = (await store.search({ limit: 10 })).purposes[0]!.sampleRecordIds[0]!;
+    expect((await store.get(recordId)).record).toMatchObject({ amountBasis: "unknown", coverage: "unknown" });
+    const request = { expectedRevision: (await store.status()).revision!, corrections: [{ recordId, amountBasis: "before-discounts", coverage: "partial" }] };
+    const preview = await store.previewCorrection(request);
+    await store.applyCorrection(request, preview.planDigest, true);
+    const expected = { receiptCount: 3, amountBasis: "mixed", amountsComparable: false, evidenceCoverage: "mixed", totalsByAmountBasis: [{ amountBasis: "before-discounts", totalAmount: 5.4 }, { amountBasis: "unknown", totalAmount: 10.8 }] };
+    expect((await store.search({ limit: 10 })).purposes[0]).toMatchObject(expected);
+    expect((await store.readiness()).candidates[0]).toMatchObject(expected);
+  });
+
+  it("rejects correction payload expansion, stale plans and purpose collisions", async () => {
+    const directory = await root();
+    const store = new ReceiptMemoryStore(directory);
+    await enable(store);
+    const saved = await store.recordVerified({ transactionIds: ["guard-fixture"], receiptDate: "2026-09-01", instrument: 2, groups: [fruit, { ...fruit, purpose: "Bread" }] });
+    const request = { expectedRevision: (await store.status()).revision!, corrections: [{ recordId: saved.recordId!, coverage: "partial" }] };
+    const before = await readFile(join(directory, "receipt-memory.json"), "utf8");
+    for (const extra of [{ amount: 900 }, { categoryId: "different" }, { merchant: "forbidden" }, { amountBasis: "invented" }]) {
+      await expect(store.previewCorrection({ ...request, corrections: [{ ...request.corrections[0], ...extra }] })).rejects.toThrow("invalid");
+    }
+    await expect(store.previewCorrection({ ...request, corrections: [{ ...request.corrections[0], renames: [{ from: "Bread", to: "Fresh fruit" }] }] })).rejects.toThrow("duplicate");
+    await expect(store.previewCorrection({ ...request, corrections: [{ ...request.corrections[0], renames: [{ from: "Bread", to: "Food" }] }] })).rejects.toThrow("invalid");
+    await expect(store.previewCorrection({ ...request, corrections: [request.corrections[0], request.corrections[0]] })).rejects.toThrow("duplicate");
+    expect(await readFile(join(directory, "receipt-memory.json"), "utf8")).toBe(before);
+    const preview = await store.previewCorrection(request);
+    await store.recordVerified({ transactionIds: ["newer-fixture"], receiptDate: "2026-09-01", instrument: 2, groups: [fruit] });
+    await expect(store.applyCorrection(request, preview.planDigest, true)).rejects.toThrow("changed");
+  });
+
+  it("fails closed if a previous correction rollback copy remains", async () => {
+    const directory = await root();
+    const store = new ReceiptMemoryStore(directory);
+    await enable(store);
+    const saved = await store.recordVerified({ transactionIds: ["rollback-fixture"], receiptDate: "2026-09-01", instrument: 2, groups: [fruit] });
+    const request = { expectedRevision: (await store.status()).revision!, corrections: [{ recordId: saved.recordId!, coverage: "partial" }] };
+    const preview = await store.previewCorrection(request);
+    const before = await readFile(join(directory, "receipt-memory.json"), "utf8");
+    await writeFile(join(directory, "receipt-memory.rollback.json"), "prior rollback", { mode: 0o600 });
+    await expect(store.applyCorrection(request, preview.planDigest, true)).rejects.toThrow();
+    expect(await readFile(join(directory, "receipt-memory.json"), "utf8")).toBe(before);
+  });
+
+  it("restores and verifies the original state after a failed correction write", async () => {
+    const directory = await root();
+    const store = new ReceiptMemoryStore(directory);
+    await enable(store);
+    const saved = await store.recordVerified({ transactionIds: ["failed-write-fixture"], receiptDate: "2026-09-01", instrument: 2, groups: [fruit] });
+    const request = { expectedRevision: (await store.status()).revision!, corrections: [{ recordId: saved.recordId!, coverage: "partial" }] };
+    const preview = await store.previewCorrection(request);
+    const before = await readFile(join(directory, "receipt-memory.json"), "utf8");
+    const writable = store as unknown as { writeState(state: unknown): Promise<void> };
+    const original = writable.writeState.bind(store);
+    vi.spyOn(writable, "writeState").mockImplementationOnce(async state => { await original(state); throw new Error("simulated post-write failure"); });
+    await expect(store.applyCorrection(request, preview.planDigest, true)).rejects.toThrow("simulated");
+    expect(await readFile(join(directory, "receipt-memory.json"), "utf8")).toBe(before);
+    await expect(access(join(directory, "receipt-memory.rollback.json"))).rejects.toThrow();
+  });
+
   it("reports distinct coverage through filtering, truncation and read-only expiry", async () => {
     const directory = await root();
     const store = new ReceiptMemoryStore(directory);

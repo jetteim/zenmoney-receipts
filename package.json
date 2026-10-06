@@ -43,7 +43,7 @@
     "test:e2e-live": "npm run build && node scripts/live-write-e2e.mjs",
     "test:hosted-http": "ZENMONEY_HOSTED_HTTP_TEST=1 vitest run tests/hosted-http.integration.test.ts",
     "eval:receipts": "node scripts/evaluate-receipts.mjs",
-    "check": "npm run test && npm run build && npm run smoke && npm run eval:receipts && npm run verify:repo && npm run test:skill-evaluator && npm run verify:skills",
+    "check": "npm run test && npm run build && node scripts/test-memory-correction-cli.mjs && npm run smoke && npm run eval:receipts && npm run verify:repo && npm run test:skill-evaluator && npm run verify:skills",
     "ci": "npm run check && npm run test:hosted-http",
     "prepack": "npm run check",
     "eval:skills": "python3 scripts/evaluate-skills.py",
