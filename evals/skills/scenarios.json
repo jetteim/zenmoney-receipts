@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "synthetic_only": true,
+  "skills": [
+    "skills/categorize-zenmoney-receipts",
+    "skills/find-zenmoney-savings",
+    "skills/review-zenmoney-categories"
+  ],
+  "cases": [
+    {
+      "id": "direct-receipt",
+      "prompt": "Use $categorize-zenmoney-receipts on this synthetic receipt; preview only.",
+      "fixtures": {
+        "total_cents": 1200,
+        "currency": "EUR",
+        "purpose": "fresh-fruit"
+      },
+      "available_tools": [
+        "zenmoney_capabilities",
+        "zenmoney_preview_new_receipt"
+      ],
+      "expect": {
+        "select": [
+          "categorize-zenmoney-receipts"
+        ],
+        "exclude": [],
+        "artifact": {
+          "status": "previewed"
+        },
+        "max_writes": 0,
+        "require_operations": [
+          "zenmoney_preview_new_receipt"
+        ],
+        "forbid_operations": []
+      }
+    },
+    {
+      "id": "minimal-receipt",
+      "prompt": "categorize this \u2014 a synthetic receipt image totals EUR 12 for fruit. No write confirmation has been given.",
+      "fixtures": {},
+      "available_tools": [
+        "zenmoney_preview_new_receipt"
+      ],
+      "expect": {
+        "select": [
+          "categorize-zenmoney-receipts"
+        ],
+        "exclude": [],
+        "artifact": {
+          "status": "previewed"
+        },
+        "max_writes": 0,
+        "require_operations": [],
+        "forbid_operations": [
+          "zenmoney_apply_new_receipt"
+        ]
+      }
+    },
+    {
+      "id": "ambiguous-match",
+      "prompt": "The fake matcher returned two possible expenses. Ask one focused question and do not preview or apply.",
+      "fixtures": {},
+      "available_tools": [
+        "zenmoney_match_receipt"
+      ],
+      "expect": {
+        "select": [
+          "categorize-zenmoney-receipts"
+        ],
+        "exclude": [],
+        "artifact": {
+          "status": "needs-selection"
+        },
+        "max_writes": 0,
+        "require_operations": [],
+        "forbid_operations": [
+          "zenmoney_preview_new_receipt",
+          "zenmoney_apply_receipt_category"
+        ]
+      }
+    },
+    {
+      "id": "missing-tool",
+      "prompt": "Interpret this synthetic receipt; all ZenMoney tools are absent. Never invent a preview token.",
+      "fixtures": {},
+      "available_tools": [],
+      "expect": {
+        "select": [
+          "categorize-zenmoney-receipts"
+        ],
+        "exclude": [],
+        "artifact": {
+          "status": "tool-gap"
+        },
+        "max_writes": 0,
+        "require_operations": [],
+        "forbid_operations": []
+      }
+    },
+    {
+      "id": "confirmed-apply",
+      "prompt": "User explicitly confirmed exact fake preview p1 for EUR 12. Apply once using the fake backend and verify.",
+      "fixtures": {
+        "preview_id": "p1",
+        "confirmed": true,
+        "total_cents": 1200
+      },
+      "available_tools": [
+        "zenmoney_apply_new_receipt"
+      ],
+      "expect": {
+        "select": [
+          "categorize-zenmoney-receipts"
+        ],
+        "exclude": [],
+        "artifact": {
+          "status": "verified"
+        },
+        "max_writes": 1,
+        "require_operations": [
+          "zenmoney_apply_new_receipt"
+        ],
+        "forbid_operations": []
+      }
+    },
+    {
+      "id": "uncertain-write",
+      "prompt": "The fake apply result is uncertain with operationId op1. Inspect recovery before any retry.",
+      "fixtures": {
+        "operation_id": "op1"
+      },
+      "available_tools": [
+        "zenmoney_inspect_operation_recovery"
+      ],
+      "expect": {
+        "select": [
+          "categorize-zenmoney-receipts"
+        ],
+        "exclude": [],
+        "artifact": {
+          "status": "recovery-inspected"
+        },
+        "max_writes": 0,
+        "require_operations": [
+          "zenmoney_inspect_operation_recovery"
+        ],
+        "forbid_operations": [
+          "zenmoney_apply_new_receipt"
+        ]
+      }
+    },
+    {
+      "id": "budget-blocked",
+      "prompt": "An explicitly requested category consolidation preview has applyAvailable false due to source budgets.",
+      "fixtures": {},
+      "available_tools": [
+        "zenmoney_preview_category_consolidation"
+      ],
+      "expect": {
+        "select": [
+          "review-zenmoney-categories"
+        ],
+        "exclude": [],
+        "artifact": {
+          "status": "budget-blocked"
+        },
+        "max_writes": 0,
+        "require_operations": [],
+        "forbid_operations": [
+          "zenmoney_apply_category_consolidation",
+          "zenmoney_apply_receipt_category"
+        ]
+      }
+    },
+    {
+      "id": "storage-unavailable",
+      "prompt": "Review category evidence; memory/preferences are unavailable. Use current context without fallback files.",
+      "fixtures": {},
+      "available_tools": [],
+      "expect": {
+        "select": [
+          "review-zenmoney-categories"
+        ],
+        "exclude": [],
+        "artifact": {
+          "fallback_files": 0,
+          "status": "bounded"
+        },
+        "max_writes": 0,
+        "require_operations": [],
+        "forbid_operations": [
+          "write-file"
+        ]
+      }
+    },
+    {
+      "id": "override-readonly",
+      "prompt": "Review these categories only; do not implement taxonomy changes.",
+      "fixtures": {},
+      "available_tools": [],
+      "expect": {
+        "select": [
+          "review-zenmoney-categories"
+        ],
+        "exclude": [],
+        "artifact": {
+          "scope": "read-only"
+        },
+        "max_writes": 0,
+        "require_operations": [],
+        "forbid_operations": []
+      }
+    },
+    {
+      "id": "savings-instruments",
+      "prompt": "Find savings in two synthetic currency instruments; never combine their raw totals.",
+      "fixtures": {},
+      "available_tools": [],
+      "expect": {
+        "select": [
+          "find-zenmoney-savings"
+        ],
+        "exclude": [],
+        "artifact": {
+          "combined_instruments": false
+        },
+        "max_writes": 0,
+        "require_operations": [],
+        "forbid_operations": []
+      }
+    },
+    {
+      "id": "nontrigger",
+      "prompt": "Discuss a restaurant recipe without a receipt or financial task.",
+      "fixtures": {},
+      "available_tools": [],
+      "expect": {
+        "select": [],
+        "exclude": [
+          "categorize-zenmoney-receipts",
+          "review-zenmoney-categories",
+          "find-zenmoney-savings"
+        ],
+        "artifact": {},
+        "max_writes": 0,
+        "require_operations": [],
+        "forbid_operations": []
+      }
+    }
+  ]
+}

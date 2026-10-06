@@ -68,6 +68,6 @@ const thresholds = {
 };
 const ok = Object.entries(thresholds).every(([name, threshold]) => metrics[name] >= threshold);
 process.stdout.write(
-  `${JSON.stringify({ schemaVersion: "1", command: "evaluate-receipts", ok, caseCount: count, metrics, thresholds, failures }, null, 2)}\n`
+  `${JSON.stringify({ schemaVersion: "1", command: "evaluate-receipts", evaluationKind: "static-fixture-contract", modelRun: false, ok, caseCount: count, metrics, thresholds, failures }, null, 2)}\n`
 );
 if (!ok) process.exitCode = 1;

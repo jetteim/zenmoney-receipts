@@ -1,5 +1,11 @@
 # Decision log
 
+## D-022 — Maintain skill guidance without resuming paused features
+
+Decision (2026-10-06): the user authorized all skill-review actions. Implement F-029 guidance, dependency metadata and synthetic opt-in runner infrastructure; preserve pre-existing user/runtime work and all exact financial/storage safety gates. Do not resume F-025/F-026 or claim the planned F-027 host baseline. No live financial access or deployment is part of this maintenance.
+
+Publication follow-through (2026-10-06): the user explicitly requested commits and pushes. Commit F-029 independently of pre-existing receipt-memory correction work, verify the staged tree and publish that maintenance commit. Keep unrelated local changes in place.
+
 ## D-020 — Make the remaining roadmap executable before expanding scope
 
 Decision (2026-09-09): interpret the request to fix and improve the roadmap assessment as a planning revision. Keep F-025 then F-026 and the recorded pause after F-024; this revision does not resume feature implementation or authorize live writes, deployment, or spending.

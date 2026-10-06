@@ -98,3 +98,7 @@ The latest sanitized E2E evidence is in [docs/e2e-test-log-2026-08-15.md](docs/e
 Never commit or paste a ZenMoney token, OpenAI runtime key, receipt, or financial export into an issue, prompt, command argument, or log. Before reporting a vulnerability, read [SECURITY.md](SECURITY.md). Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md).
 
 This project is independent software, not an official ZenMoney product. It wraps the MIT-licensed [`@nonnname/zenmoney-mcp`](https://github.com/nonnname/zenmoney-mcp) backend and uses ZenMoney's documented `/v8/diff/` API.
+
+## Skill evaluation
+
+See [skill-evaluation.md](docs/skill-evaluation.md) for static fixture limits, synthetic scenarios and the opt-in fresh-run adapter. Offline runner tests are simulations; model-backed results are reported separately.

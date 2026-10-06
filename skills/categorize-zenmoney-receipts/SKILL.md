@@ -1,12 +1,6 @@
 ---
 name: categorize-zenmoney-receipts
-description: >-
-  Automatically handle a receipt image or PDF in ZenMoney by matching an existing expense,
-  categorizing or reconciling it, or creating one missing expense per supported category through
-  exact preview and confirmation. Use whenever the user attaches, drops, points to, or mentions a
-  receipt/invoice that appears relevant to ZenMoney, even with no text or only a minimal prompt
-  such as "categorize this"; also use for requests to tag, reconcile, split, add, or find a receipt
-  transaction, and to suggest more granular categories from receipt line-item evidence.
+description: "Handle a ZenMoney receipt image or PDF, even with a minimal prompt: match, categorize, reconcile or create expenses through exact preview and confirmation."
 ---
 
 # Categorize ZenMoney Receipts
@@ -34,14 +28,11 @@ description: >-
 - Ask at most one focused question when a transaction match or exact allocation remains genuinely ambiguous; combine related choices.
 - The only routine pause is the explicit confirmation of the exact financial-write preview.
 
-## Storage self-awareness
+## Storage and capability checks
 
-- If capabilities report local preferences available, inspect `zenmoney_preferences` and use only enabled `effective` values. `foodGrouping` selects food type versus intended consumer; `categoryGranularity: existing-only` suppresses unsolicited narrower-category suggestions; `candidateNotes: never-suggest` suppresses unsolicited remote-note suggestions. Current explicit user instructions and financial safety override saved preferences. Attribute any used preference separately from server defaults.
-- Never silently save corrections. Use `zenmoney_preview_preferences` for enable/disable/set/delete/purge, show exact before/after and location, then `zenmoney_apply_preferences` only after confirmation. Preferences are structured, advisory, local and separate from receipt evidence; neither store's purge clears the other. Hosted preferences are unsupported. If unavailable, continue without them and without fallback files.
-- At first relevant use in a session, use `zenmoney_receipt_memory_status` to briefly explain enabled/disabled state, retention, and the actual `dataLocation`. Repeat when settings/location change or the user asks to save elsewhere. Local mode stores evidence on the MCP machine; hosted mode stores it on the server for that tenant. A clone on another machine does not transfer evidence, and memory does not sync to ZenMoney. If status is unavailable, say so; do not invent a location.
-- Never persist personal receipt evidence, category-candidate lists, or spending summaries in the repository, including ignored files, project handoff files, or `docs/evidence/` (sanitized engineering verification only). Use only managed receipt memory for confirmed groups. When disabled/unavailable, continue with current-context evidence without creating fallback files.
-- When candidates would be useful across devices, suggest an optional short ZenMoney transaction comment containing supported purpose labels, such as `Category candidate: Fresh vegetables`. Explain that this is remote financial data, independent of local-memory retention/deletion. Never copy raw receipts, product text, local paths, or memory exports into comments. Notes neither create categories nor count toward local review readiness.
-- Existing comments must be edited manually in ZenMoney, preserving existing text; do not create a duplicate expense for a note. For a new unmatched receipt, an optional `comment` (maximum 300 characters) must be shown verbatim alongside the exact financial preview and explicitly confirmed before apply. The same comment goes on every created part: use receipt-level wording. A changed note requires a fresh preview and confirmation. Never add notes silently.
+Read [storage-policy.md](references/storage-policy.md) before using receipt memory, preferences or remote notes. Use only enabled inspected preferences; current user instructions and financial safety take precedence. Explain the actual storage location and retention. Never persist personal evidence, candidates or spending summaries in the checkout, ignored files or fallback files. Memory failure does not block a financial workflow or imply empty history.
+
+Require the operation-specific preview/apply/recovery tools before offering a financial write. If tools are absent, continue bounded receipt interpretation or read-only recommendations from supplied evidence, report the missing capability and never fabricate a preview token or verified result. Do not connect accounts automatically.
 
 ## Workflow
 

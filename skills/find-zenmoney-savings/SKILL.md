@@ -1,9 +1,13 @@
 ---
 name: find-zenmoney-savings
-description: Analyze bounded ZenMoney expense history and suggest evidence-based saving opportunities without changing financial data. Use when the user asks where money goes, what spending can be reduced, which recurring expenses to review, how to save, or for a spending trend/cost-cutting review.
+description: "Find evidence-based savings in bounded ZenMoney expense history without changing financial data."
 ---
 
 # Find ZenMoney Savings
+
+## Capability checks
+
+Check `zenmoney_capabilities` when availability is unclear. Require connection, sync and spending-insights reads for connected analysis. If unavailable, analyze supplied evidence with explicit coverage limits, or report the missing capability. Never infer empty spending from failed calls, reconnect automatically or persist personal summaries in the repo or fallback files.
 
 ## Workflow
 

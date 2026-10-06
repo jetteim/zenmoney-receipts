@@ -2,3 +2,9 @@ interface:
   display_name: "Find ZenMoney Savings"
   short_description: "Find evidence-based savings opportunities"
   default_prompt: "Use $find-zenmoney-savings to review my spending history and suggest realistic savings."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "zenmoney-receipts"
+      description: "Receipt-safe ZenMoney connector"

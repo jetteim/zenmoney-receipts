@@ -1,6 +1,8 @@
 # Project status
 
-Last updated: 2026-09-09
+F-029 skill maintenance is complete as guidance/evaluator infrastructure. The full offline check passed on the isolated skill-maintenance snapshot on 2026-10-06: 86 application tests, 1 hosted test skipped, build, CLI/MCP smoke and six runner simulations. Actual host/model behavior remains unverified. F-025/F-026 remain paused and F-027 remains planned.
+
+Last updated: 2026-10-06
 
 Current version: 0.7.0
 

@@ -2,3 +2,9 @@ interface:
   display_name: "Categorize ZenMoney Receipts"
   short_description: "Match receipts and refine categories safely"
   default_prompt: "Use $categorize-zenmoney-receipts to categorize this receipt in ZenMoney."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "zenmoney-receipts"
+      description: "Receipt-safe ZenMoney connector"

@@ -8,6 +8,16 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 2. Review existing categories plus narrow retained receipt evidence → suggest more or less granular grouping → safely implement an explicitly approved structure.
 3. Review granular history → suggest realistic savings with bounded evidence and no writes.
 
+## Named maintenance work
+
+### F-029 — Review and maintain authored skills
+
+- User outcome: shorter discoverable skills with explicit connector dependencies, packaged storage constraints and synthetic fresh-run evaluation infrastructure.
+- Scope: guidance/UI/reference packaging and opt-in evaluator only; preserve runtime code, exact financial previews, verified-only success, uncertain-write recovery and personal-evidence locality. F-025/F-026 remain paused; F-027 host baseline remains planned.
+- Rollback: reverse the F-029 skill/tooling/documentation diff only, preserving pre-existing local evidence correction work and user changes.
+- Validation: complete offline `npm run check`, package/metadata checks, fresh-run simulation/error tests and bootstrap projection/drift verification. No live mutation or actual model baseline is claimed.
+- State: complete as skill/evaluator infrastructure; full offline `npm run check` passed on the isolated skill-maintenance snapshot on 2026-10-06 (86 application tests, 1 hosted test skipped; build, CLI/MCP smoke, fixture and six runner checks). Actual host/model behavior remains unverified and F-027 remains planned.
+
 ## Ready / Now
 
 Order remains F-025, then F-026. D-019 records authorization for all six self-awareness capabilities and one verified commit per capability; the pause after F-024 remains until the user asks to resume implementation. The 2026-09-09 roadmap revision changes planning only. Acceptance below is required future evidence, not a claim of implementation.
