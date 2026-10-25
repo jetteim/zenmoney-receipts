@@ -74,8 +74,10 @@ function credentialCheck(): Check {
     : {
         id: "auth.zenmoney",
         status: "fail",
-        detail: "No ZenMoney credential is available.",
-        remediation: "On macOS run ./scripts/auth-macos.sh, or provide the credential only in the MCP process environment."
+        detail: `No credential is accessible in this process (${status.diagnostic ?? "unavailable"}).`,
+        remediation: status.diagnostic === "account-unavailable" || status.diagnostic === "keychain-unavailable"
+          ? "Run npm run doctor:live in the trusted terminal that launches the MCP host. If it passes there, repair the host's Keychain access; replacing the token will not fix this process context. If it fails there too, use ./scripts/auth-macos.sh privately."
+          : "Provide the credential only in the MCP process environment. Never paste it into agent chat or command arguments."
       };
 }
 
@@ -204,6 +206,7 @@ async function liveCheck(): Promise<Check> {
 }
 
 async function doctor(live: boolean): Promise<number> {
+  const authentication = credentialCheck();
   const checks = [
     nodeCheck(),
     {
@@ -212,12 +215,16 @@ async function doctor(live: boolean): Promise<number> {
       detail: existsSync(serverPath) ? "MCP server build exists." : "MCP server build is missing.",
       ...(existsSync(serverPath) ? {} : { remediation: "Run npm run build." })
     } satisfies Check,
-    credentialCheck(),
+    authentication,
     codexCheck(),
     await receiptMemoryCheck(),
     ...(await operationalStorageChecks())
   ];
-  if (live) checks.push(await liveCheck());
+  if (live) checks.push(authentication.status === "fail" ? {
+    id: "live.zenmoney-readonly", status: "fail",
+    detail: "Live access was not attempted because this process cannot access a credential.",
+    ...(authentication.remediation ? { remediation: authentication.remediation } : {})
+  } : await liveCheck());
   const ok = checks.every((check) => check.status !== "fail");
   output({ schemaVersion: "1", command: "doctor", version: VERSION, ok, live, checks });
   return ok ? 0 : 2;

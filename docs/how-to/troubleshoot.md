@@ -9,6 +9,22 @@ node dist/cli.js doctor
 
 Add `--live` only for a read-only ZenMoney synchronization check. If authentication fails in an agent sandbox but the status says Keychain is configured, run the doctor from the same trusted interactive terminal that launches the MCP host; macOS may deny Keychain access to a different process context.
 
+## Terminal passes but the agent cannot read Keychain
+
+A passing terminal doctor and a failing agent doctor are different process observations. Check `credentialDiagnostic` on connection status. `account-unavailable` means no usable account name was found; `keychain-unavailable` means the lookup returned no usable credential in that process. Neither proves an expired token. Only an upstream authentication response tests the credential itself.
+
+The loader first uses the macOS account name, then validated USER/LOGNAME when Directory Services is unavailable. If Terminal can read Keychain but the agent still cannot, run this from the project directory in that trusted Terminal:
+
+```sh
+npm run codex
+```
+
+The launcher builds the connector, reads the existing credential privately and starts a new Codex CLI session. It passes the value through child-process environment only and adds a process-local `mcp_servers.zenmoney-receipts.env_vars` override containing only the variable name. No token copying, shell-history credential, permanent config edit or policy disabling is needed. Existing sessions cannot inherit a newly launched process's environment. In the new session, verify connection status and read-only sync before receipt handling. The launcher needs the existing local MCP registration; it does not repair a wrong server path or install the Codex CLI.
+
+Use this only with a trusted local host: environment credentials are accessible to code that inherits them. Stop that launched Codex session to end the override; launch Codex normally to return to direct Keychain discovery. Never paste tokens into chat. Keep secret-scanning hooks enabled. The observed hook only gives feedback about secret-like output; it does not grant macOS Keychain access.
+
+[Official MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli) documents `env_vars` forwarding. Other application/remote executor launches need their own supported secret injection boundary; this CLI launcher does not retrofit their environment.
+
 ## Interrupted write
 
 Use the `operationId` from the preview/result with `zenmoney_inspect_operation_recovery`. Interpret it literally:

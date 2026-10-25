@@ -1,3 +1,4 @@
+import type { EvidencePricing } from "./receipt-evidence-pricing.js";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 import {
@@ -11,6 +12,7 @@ interface PreviewPayload {
   expectedChanged: number;
   tagIds: string[];
   evidenceGroups: ReceiptEvidenceGroup[];
+  evidencePricing?: EvidencePricing | undefined;
   expiresAt: number;
 }
 
@@ -42,6 +44,7 @@ export class PreviewTokenManager {
       expectedChanged: input.expectedChanged,
       tagIds: [...input.tagIds],
       evidenceGroups: [...(input.evidenceGroups ?? [])],
+      ...(input.evidencePricing ? { evidencePricing: input.evidencePricing } : {}),
       expiresAt: now + (options.ttlMs ?? 10 * 60_000)
     };
     const body = encode(JSON.stringify(payload));

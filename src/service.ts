@@ -1,3 +1,4 @@
+import type { EvidencePricing } from "./receipt-evidence-pricing.js";
 import { randomUUID } from "node:crypto";
 import { decision, provenance } from "./provenance.js";
 import { transactionCoverage } from "./evidence-coverage.js";
@@ -112,11 +113,12 @@ export class ZenMoneyReceiptService {
     >()
   ) {}
 
-  status(): { configured: boolean; credentialSource: string; privacy: string } {
+  status(): { configured: boolean; credentialSource: string; credentialDiagnostic: string; privacy: string } {
     const status = credentialStatus();
     return {
       configured: status.configured,
       credentialSource: status.source,
+      credentialDiagnostic: status.diagnostic ?? "unavailable",
       privacy:
         "Credentials and ZenMoney responses stay in process memory. Receipt files are not sent here. The crash-recovery journal stores only target ids and one-way state fingerprints in a private local file."
     };
@@ -773,6 +775,7 @@ export class ZenMoneyReceiptService {
     transactionId: string;
     tagIds: string[];
     evidenceGroups?: ReceiptEvidenceGroup[] | undefined;
+    evidencePricing?: EvidencePricing | undefined;
   }) {
     await this.sync(false);
     const transaction = requireTransaction(
@@ -784,7 +787,7 @@ export class ZenMoneyReceiptService {
     if (transaction.changed === null) {
       throw new Error("transaction has no concurrency version and cannot be updated safely");
     }
-    const evidenceGroups = validateReceiptEvidenceGroups(input.evidenceGroups, transaction.outcome);
+    const evidenceGroups = validateReceiptEvidenceGroups(input.evidenceGroups, transaction.outcome, input.evidencePricing);
 
     const categories = await this.listCategories(false);
     const byId = new Map(
@@ -800,7 +803,8 @@ export class ZenMoneyReceiptService {
       transactionId: transaction.id,
       expectedChanged: transaction.changed,
       tagIds: input.tagIds,
-      evidenceGroups
+      evidenceGroups,
+      evidencePricing: input.evidencePricing
     });
     return {
       operation: "replace transaction categories",
@@ -811,7 +815,7 @@ export class ZenMoneyReceiptService {
       ]),
       before: { transaction, categories: categoryNames(transaction.tag, categories) },
       proposed: { tagIds: input.tagIds, categories: selected.map((category) => category!.title) },
-      receiptMemory: await this.describeReceiptMemory(evidenceGroups),
+      receiptMemory: await this.describeReceiptMemory(evidenceGroups, input.evidencePricing),
       previewToken: signed.token,
       operationId: operationIdForPreviewToken(signed.token),
       expiresAt: signed.expiresAt,
@@ -830,6 +834,9 @@ export class ZenMoneyReceiptService {
       await this.backend.call("transactions_get", { id: preview.transactionId })
     );
 
+    if (preview.evidencePricing && current.changed !== preview.expectedChanged) {
+      throw new Error("transaction changed after preview; review it and create a new preview");
+    }
     if (sameIds(current.tag, preview.tagIds)) {
       return {
         applied: false,
@@ -840,7 +847,8 @@ export class ZenMoneyReceiptService {
           transactionIds: [current.id],
           receiptDate: current.date,
           instrument: current.outcomeInstrument,
-          groups: preview.evidenceGroups
+          groups: preview.evidenceGroups,
+          evidencePricing: preview.evidencePricing
         })
       };
     }
@@ -883,7 +891,8 @@ export class ZenMoneyReceiptService {
           transactionIds: [updated.id],
           receiptDate: updated.date,
           instrument: updated.outcomeInstrument,
-          groups: preview.evidenceGroups
+          groups: preview.evidenceGroups,
+          evidencePricing: preview.evidencePricing
         })
       };
     } catch (error) {
@@ -897,9 +906,10 @@ export class ZenMoneyReceiptService {
     receiptTotal: number;
     allocations: Array<{ transactionId: string; parts: ReceiptPart[] }>;
     evidenceGroups?: ReceiptEvidenceGroup[] | undefined;
+    evidencePricing?: EvidencePricing | undefined;
   }) {
     validateMoney(input.receiptTotal, "receipt total");
-    const evidenceGroups = validateReceiptEvidenceGroups(input.evidenceGroups, input.receiptTotal);
+    const evidenceGroups = validateReceiptEvidenceGroups(input.evidenceGroups, input.receiptTotal, input.evidencePricing);
     if (input.allocations.length === 0) {
       throw new Error("at least one existing expense allocation is required");
     }
@@ -964,7 +974,8 @@ export class ZenMoneyReceiptService {
       sourceTotal: sourceTotal / 100,
       allocatedTotal: allocatedTotal / 100,
       allocations,
-      evidenceGroups
+      evidenceGroups,
+      evidencePricing: input.evidencePricing
     };
     const preview = this.reconciliationPreviews.create(plan);
     return {
@@ -988,7 +999,7 @@ export class ZenMoneyReceiptService {
           categories: categoryNames(part.tagIds, categories)
         }))
       })),
-      receiptMemory: await this.describeReceiptMemory(evidenceGroups),
+      receiptMemory: await this.describeReceiptMemory(evidenceGroups, input.evidencePricing),
       ...preview,
       operationId: operationIdForPreviewToken(preview.previewToken),
       requiresConfirmation: true,
@@ -1007,9 +1018,10 @@ export class ZenMoneyReceiptService {
     comment?: string | undefined;
     parts: ReceiptPart[];
     evidenceGroups?: ReceiptEvidenceGroup[] | undefined;
+    evidencePricing?: EvidencePricing | undefined;
   }) {
     validateMoney(input.receiptTotal, "receipt total");
-    const evidenceGroups = validateReceiptEvidenceGroups(input.evidenceGroups, input.receiptTotal);
+    const evidenceGroups = validateReceiptEvidenceGroups(input.evidenceGroups, input.receiptTotal, input.evidencePricing);
     const receiptDate = resolveReceiptDate(input.date);
     const accountHint = validateAccountHint(input.accountHint);
     if (input.accountId && accountHint) {
@@ -1057,7 +1069,8 @@ export class ZenMoneyReceiptService {
       payee: input.payee?.trim() || null,
       comment: input.comment?.trim() || null,
       parts: input.parts.map((part) => ({ ...part, transactionId: randomUUID() })),
-      evidenceGroups
+      evidenceGroups,
+      evidencePricing: input.evidencePricing
     };
     const preview = this.creationPreviews.create(plan);
     return {
@@ -1105,7 +1118,7 @@ export class ZenMoneyReceiptService {
         tagIds: part.tagIds,
         categories: categoryNames(part.tagIds, categories)
       })),
-      receiptMemory: await this.describeReceiptMemory(evidenceGroups),
+      receiptMemory: await this.describeReceiptMemory(evidenceGroups, input.evidencePricing),
       ...preview,
       operationId: operationIdForPreviewToken(preview.previewToken),
       requiresConfirmation: true,
@@ -1269,7 +1282,8 @@ export class ZenMoneyReceiptService {
           transactionIds: transactions.map((transaction) => transaction.id),
           receiptDate: plan.allocations[0]?.source.date ?? null,
           instrument: plan.allocations[0]?.source.outcomeInstrument ?? null,
-          groups: plan.evidenceGroups
+          groups: plan.evidenceGroups,
+          evidencePricing: plan.evidencePricing
         })
       };
       await this.operationJournal.markCompleted(operation.operationId);
@@ -1397,7 +1411,8 @@ export class ZenMoneyReceiptService {
           transactionIds: transactions.map((transaction) => transaction.id),
           receiptDate: plan.date,
           instrument: plan.instrument,
-          groups: plan.evidenceGroups
+          groups: plan.evidenceGroups,
+          evidencePricing: plan.evidencePricing
         })
       };
       await this.operationJournal.markCompleted(operation.operationId);
@@ -1422,7 +1437,7 @@ export class ZenMoneyReceiptService {
     }
   }
 
-  private async describeReceiptMemory(groups: ReceiptEvidenceGroup[]) {
+  private async describeReceiptMemory(groups: ReceiptEvidenceGroup[], evidencePricing?: EvidencePricing) {
     const status = await this.receiptMemory.status();
     return {
       enabled: status.enabled,
@@ -1431,6 +1446,7 @@ export class ZenMoneyReceiptService {
       willEvaluateReviewReadiness: true,
       retentionDays: status.retentionDays,
       evidenceGroups: groups,
+      ...(evidencePricing ? { evidencePricing, amountBasis: "before-discounts", coverage: evidencePricing.coverage } : {}),
       privacy: status.privacy,
       ...(status.error ? { error: status.error } : {})
     };
@@ -1441,6 +1457,7 @@ export class ZenMoneyReceiptService {
     receiptDate: string | null;
     instrument: number | null;
     groups: ReceiptEvidenceGroup[];
+    evidencePricing?: EvidencePricing | undefined;
   }): Promise<ReceiptMemoryResult> {
     if (input.receiptDate === null || input.instrument === null) {
       let readiness: Awaited<ReturnType<ReceiptMemoryController["readiness"]>> | null = null;
@@ -1460,7 +1477,8 @@ export class ZenMoneyReceiptService {
         transactionIds: input.transactionIds,
         receiptDate: input.receiptDate,
         instrument: input.instrument,
-        groups: input.groups
+        groups: input.groups,
+        evidencePricing: input.evidencePricing
       });
     } catch (error) {
       let readiness: Awaited<ReturnType<ReceiptMemoryController["readiness"]>> | null = null;

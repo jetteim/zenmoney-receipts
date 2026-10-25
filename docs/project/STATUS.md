@@ -2,13 +2,19 @@
 
 F-029 skill maintenance is complete as guidance/evaluator infrastructure. The full offline check passed on the isolated skill-maintenance snapshot on 2026-10-06: 86 application tests, 1 hosted test skipped, build, CLI/MCP smoke and six runner simulations. Actual host/model behavior remains unverified. F-025/F-026 remain paused and F-027 remains planned.
 
-Last updated: 2026-10-06
+Last updated: 2026-10-25
 
 Current version: 0.7.0
 
 Deployment targets: private single-user local stdio; repository-ready direct hosted Streamable HTTP. No tunnel mode.
 
 ## Current outcome
+
+F-032 addresses process-specific Keychain failures: fall back to validated USER/LOGNAME when account lookup fails, bound the Keychain subprocess, expose safe credential diagnostics, and provide a trusted-terminal Codex launcher that forwards only the credential environment-variable name in configuration. Hooks remain unchanged. The launched session verified environment-based credential access and live MCP synchronization; direct Keychain access in the original restricted process is not claimed repaired. Runtime tests and live access are reported separately in [verification](../evidence/2026-10-19-keychain-process-context.md). F-025/F-026 remain paused.
+
+F-030 complete full-price evidence is implemented and verified: signed receipt previews bind gross/discount/coverage facts independently from paid financial amounts; bounded local completion appends missing groups without rewriting existing facts. Authorized local repairs were re-read successfully. Full offline checks passed (94 tests, one opt-in hosted test skipped) and read-only live doctor passed. Restart existing MCP processes to expose the additive schema. See [verification](../evidence/2026-10-17-full-price-evidence.md).
+
+F-031 prepared standalone MIT skill ZIPs, accurate marketplace copy, synthetic demo assets and dependency disclosures. The receipt skill was submitted through the user browser and is pending Agensi review. This is skill distribution, not a public hosted connector launch; F-014P and the F-025/F-026 pause remain unchanged. Submission outcome is tracked in [the handoff](../../marketplace/agensi/submit.md).
 
 F-028 is complete: bounded local CLI correction of purpose labels and explicit price-basis/coverage annotations, without financial writes. The authorized local repair was applied and independently re-read through MCP and the rebuilt CLI. Unknown historical pricing remains unknown. The F-025/F-026 pause is unchanged. Long-running MCP processes need a restart to load the new aggregate annotations; the current CLI already exposes them. See [sanitized verification](../evidence/2026-09-30-local-evidence-correction.md).
 
@@ -27,6 +33,8 @@ Version 0.7.0 adds durable recovery inspection, privacy-safe diagnostics, safe c
 `F-020` adds [behavior architecture diagrams and a source map](../explanation/behavior-architecture.md): host reasoning, skills/workspace guidance, MCP prose versus schemas/handlers, deterministic service rules, backend interfaces, and local/hosted state. It includes a receipt sequence and diagnostic lookup without changing runtime behavior.
 
 ## Verification baseline
+
+- F-030/F-031/F-032 publication recheck (2026-10-25): `npm run check` passed (105 tests, one opt-in hosted test skipped), setup dry-run passed, all three allowlisted marketplace packages rebuilt and validated, and read-only `npm run doctor:live` passed outside the sandbox using environment credentials. The sandboxed live request failed before that successful retry. See [publication verification](../evidence/2026-10-25-prepush-verification.md). No financial writes were run for this publication check.
 
 - F-028 pre-publication recheck (2026-10-06): full `npm run check` passed on the current tree with F-029 integrated: 91 application tests passed, one hosted test skipped, correction CLI/MCP smoke, receipt fixtures, six skill-evaluator tests and skill packaging checks. The user authorized commit and push; no personal receipt data is included. See [sanitized evidence](../evidence/2026-09-30-local-evidence-correction.md).
 

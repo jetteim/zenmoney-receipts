@@ -1,3 +1,4 @@
+import { evidencePricingSchema } from "./receipt-evidence-pricing.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
@@ -92,6 +93,7 @@ export const SERVER_INSTRUCTIONS = [
   "At first receipt or category-review use in a session, inspect zenmoney_receipt_memory_status and briefly explain enabled/disabled state, retention, and actual dataLocation; repeat if settings/location change or the user asks to save elsewhere. Local evidence lives on the MCP machine; hosted evidence lives in that tenant's server storage. Cloning elsewhere does not transfer evidence; receipt memory does not sync to ZenMoney. If status is unavailable, say so without inventing a path. Never persist personal evidence, category-candidate lists, or spending summaries in the repository, including ignored files, handoff files, or docs/evidence (sanitized engineering verification only). Use only managed receipt memory for confirmed groups; if disabled/unavailable, continue in current context without fallback files.",
   "When category candidates would be useful across devices, suggest an optional short ZenMoney transaction comment with supported purpose labels, such as 'Category candidate: Fresh vegetables'. Explain that comments are remote financial data, independent of local-memory retention/deletion. Never copy raw receipts, product lists, local paths, or memory exports into comments. Notes neither create categories nor count toward local review readiness. Existing comments require manual editing in ZenMoney while preserving existing text; no comment-edit tool is exposed. Never create a duplicate expense for a note or turn a read-only review into a write. For an independently needed new receipt, an optional comment (up to 300 characters) must be shown verbatim alongside the exact financial preview and explicitly confirmed before apply. The same comment goes on every created part: use receipt-level wording. A changed note requires a fresh preview and confirmation; never add notes silently.",
   "For a mixed receipt, allocate parts only when receipt evidence supports the amounts; otherwise ask the user or use a user-approved whole-transaction category.",
+  "For full-price evidence, supply evidencePricing: beforeDiscountTotal minus discountTotal must equal the paid receiptTotal; coverage complete requires all groups to sum to beforeDiscountTotal. Loyalty tender is not a discount. Never omit groups solely to fit the paid amount; old processes must be restarted for this field.",
   "When receipt memory is enabled, include narrow approved evidenceGroups in the receipt preview: use durable leaf purposes such as Fresh fruit, Fresh vegetables, or Herbs, never broad labels such as Produce, Groceries, Food, Other, brands, SKUs, or raw receipt text. The exact groups must be visible in the preview. After every verified receipt apply, inspect receiptMemory.reviewReadiness. If ready is true, immediately run a read-only category review using the bounded local evidence and current category structure; recommend changes but never mutate taxonomy without a separate exact preview and confirmation.",
   "After confirmation, apply the exact preview rather than abandoning an authorized partial or full result. Report success only when verified is true.",
   "If an apply is interrupted or its result is uncertain, use the returned operationId with operation recovery inspection before creating any replacement preview. Never repeat a write whose recovery classification is completed or manual-review.",
@@ -558,7 +560,7 @@ export function createServer(service: ZenMoneyReceiptService, hostedOAuth?: Host
       title: "Preview a receipt category change",
       description:
         "Validate an existing expense and active categories, then return the exact before/after change and a short-lived signed confirmation token. Makes no write.",
-      inputSchema: { transactionId: resourceId, tagIds, evidenceGroups: receiptEvidenceGroups },
+      inputSchema: { transactionId: resourceId, tagIds, evidencePricing: evidencePricingSchema.optional().describe("Full-price evidence only: beforeDiscountTotal minus discountTotal must equal the paid receipt total; complete coverage requires every group subtotal to sum to beforeDiscountTotal. Do not subtract loyalty tender as a discount."), evidenceGroups: receiptEvidenceGroups },
       annotations: readAnnotations
     },
     async (input) => handled(() => service.previewCategory(input))
@@ -601,7 +603,7 @@ export function createServer(service: ZenMoneyReceiptService, hostedOAuth?: Host
           )
           .min(1)
           .max(20),
-        evidenceGroups: receiptEvidenceGroups
+        evidencePricing: evidencePricingSchema.optional().describe("Full-price evidence only: beforeDiscountTotal minus discountTotal must equal the paid receipt total; complete coverage requires every group subtotal to sum to beforeDiscountTotal. Do not subtract loyalty tender as a discount."), evidenceGroups: receiptEvidenceGroups
       },
       annotations: readAnnotations
     },
@@ -653,7 +655,7 @@ export function createServer(service: ZenMoneyReceiptService, hostedOAuth?: Host
         payee: z.string().trim().min(1).max(200).optional(),
         comment: z.string().trim().min(1).max(300).optional(),
         parts: z.array(receiptPart).min(1).max(10),
-        evidenceGroups: receiptEvidenceGroups
+        evidencePricing: evidencePricingSchema.optional().describe("Full-price evidence only: beforeDiscountTotal minus discountTotal must equal the paid receipt total; complete coverage requires every group subtotal to sum to beforeDiscountTotal. Do not subtract loyalty tender as a discount."), evidenceGroups: receiptEvidenceGroups
       },
       annotations: readAnnotations
     },

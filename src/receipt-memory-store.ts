@@ -1,3 +1,4 @@
+import { evidenceLimit, type EvidencePricing } from "./receipt-evidence-pricing.js";
 import { createHash, randomBytes } from "node:crypto";
 import { chmod, lstat, mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -389,8 +390,11 @@ export function defaultReceiptMemoryDirectory(): string {
 
 export function validateReceiptEvidenceGroups(
   values: ReceiptEvidenceGroup[] | undefined,
-  receiptTotal: number
+  receiptTotal: number,
+  pricing?: EvidencePricing
 ): ReceiptEvidenceGroup[] {
+  const limit = evidenceLimit(receiptTotal, pricing);
+  if (pricing && (!values || values.length === 0)) throw new Error("evidence pricing requires groups");
   if (values === undefined || values.length === 0) return [];
   if (values.length > 10) throw new Error("receipt memory evidence is limited to 10 purpose groups");
   const groups = values.map((value) => {
@@ -413,7 +417,10 @@ export function validateReceiptEvidenceGroups(
     throw new Error("receipt memory purpose groups must be unique within a receipt");
   }
   const groupTotal = groups.reduce((total, group) => total + Math.round(group.amount * 100), 0);
-  if (groupTotal > Math.round(receiptTotal * 100)) {
+  if (pricing?.coverage === "complete" && groupTotal !== Math.round(limit * 100)) {
+    throw new Error("complete evidence must sum to the full-price total");
+  }
+  if (groupTotal > Math.round(limit * 100)) {
     throw new Error("receipt memory group subtotals cannot exceed the receipt total");
   }
   return groups;
@@ -520,6 +527,7 @@ export class ReceiptMemoryStore {
     receiptDate: string;
     instrument: number;
     groups: ReceiptEvidenceGroup[];
+    evidencePricing?: EvidencePricing | undefined;
   }, now = Date.now()): Promise<{
     status: "disabled" | "no-evidence" | "recorded" | "already-recorded";
     recordId?: string;
@@ -582,7 +590,8 @@ export class ReceiptMemoryStore {
         recordedAt: new Date(now).toISOString(),
         receiptMonth: input.receiptDate.slice(0, 7),
         instrument: input.instrument,
-        groups: input.groups
+        groups: input.groups,
+        ...(input.evidencePricing ? { amountBasis: "before-discounts" as const, coverage: input.evidencePricing.coverage } : {})
       };
       if (!validRecord(record)) throw new Error("verified receipt evidence is invalid");
       const records = [record, ...state.records]
@@ -747,6 +756,19 @@ export class ReceiptMemoryStore {
       const record = records.find(candidate => candidate.id === change.recordId);
       if (!record) throw new Error("correction record was not found");
       const before = publicRecord(structuredClone(record));
+      if (change.completion) {
+        if (record.amountBasis !== "before-discounts" || record.coverage !== "partial")
+          throw new Error("completion requires known partial full-price evidence");
+        if (change.renames || change.amountBasis || change.coverage)
+          throw new Error("completion cannot be combined with other corrections");
+        const { paidTotal, pricing, appendGroups } = change.completion;
+        if (pricing.coverage !== "complete") throw new Error("completion must cover the full receipt");
+        const categories = new Set(record.groups.map(group => group.categoryId));
+        if (appendGroups.some(group => !categories.has(group.categoryId)))
+          throw new Error("completion cannot introduce category assignments");
+        record.groups = validateReceiptEvidenceGroups([...record.groups, ...appendGroups], paidTotal, pricing);
+        record.coverage = "complete";
+      }
       if (change.amountBasis !== undefined) record.amountBasis = change.amountBasis;
       if (change.coverage !== undefined) record.coverage = change.coverage;
       const renames = new Map((change.renames ?? []).map(rename => [rename.from, rename.to]));
@@ -773,7 +795,7 @@ export class ReceiptMemoryStore {
       changes,
       untrustedData: true,
       requiresConfirmation: true,
-      note: "No data has changed. Only purpose labels, amount basis and evidence coverage can change."
+      note: "No data has changed. Labels and metadata can change; explicit completion can append missing groups without altering existing groups."
     };
   }
 

@@ -1,5 +1,21 @@
 # Decision log
 
+## D-025 — Preserve credentials across a trusted-terminal launch
+
+Decision (2026-10-19): an unavailable macOS account lookup must not prevent a validated USER/LOGNAME fallback. Never search an arbitrary account when all names are absent or invalid. Bound Keychain reads to 15 seconds and return only finite diagnostic labels; keep raw errors and credential values private. A missing credential in one process is not evidence of an invalid token.
+
+For a host process whose Keychain access differs from the trusted Terminal, provide an optional launcher: resolve the credential in that Terminal, spawn Codex with it in the child environment and set a process-local MCP env_vars allowlist. Never place its value in arguments, repository/config files, logs or chat. This uses the existing explicitly supported environment credential boundary, not a new credential store. Environment credentials remain readable to processes that inherit them; use only a trusted local host. No sandbox permission or hook is disabled and no permanent Codex setting is edited.
+
+## D-024 — Submit standalone skills with explicit dependencies
+
+Decision (2026-10-17): the user requested marketplace preparation and submission through their browser. Submit the receipt skill first as a free MIT listing, using the existing creator profile. Package only allowlisted instructions/references/license and synthetic examples. Disclose the separately installed MCP server, private credential setup, host extraction limits and capability-dependent full-price support. Do not claim a public hosted service, cross-agent validation or marketplace approval. Keep optional category/savings packages available separately.
+
+## D-023 — Separate gross evidence from paid financial amounts
+
+Decision (2026-10-17): add optional evidencePricing to receipt previews and bind it into signed apply state. Validate integer-cent gross minus discounts equals the receipt paid total, enforce gross coverage when complete, and preserve the old paid cap for callers without pricing. Store only approved minimal groups and explicit basis/coverage; pricing inputs remain caller-supported facts. Financial parts continue reconciling to paid amounts.
+
+Extend the local-only correction command with exact append-only completion for explicitly partial before-discount records. Combined groups must reconcile to complete gross pricing; added categories must already exist in the record. Preserve all previous groups, identity, recorded time and retention. No generic historical financial edit or remote write is added. Existing revision/digest/atomic recovery controls still apply. A stale evidence-only category no-op must also pass concurrency checking.
+
 ## D-022 — Maintain skill guidance without resuming paused features
 
 Decision (2026-10-06): the user authorized all skill-review actions. Implement F-029 guidance, dependency metadata and synthetic opt-in runner infrastructure; preserve pre-existing user/runtime work and all exact financial/storage safety gates. Do not resume F-025/F-026 or claim the planned F-027 host baseline. No live financial access or deployment is part of this maintenance.

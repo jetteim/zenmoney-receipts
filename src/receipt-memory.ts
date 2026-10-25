@@ -1,3 +1,4 @@
+import type { EvidencePricing } from "./receipt-evidence-pricing.js";
 import { OperationPreviewStore } from "./operation-preview-store.js";
 import {
   ReceiptMemoryStore,
@@ -142,6 +143,7 @@ export class ReceiptMemoryController {
     receiptDate: string;
     instrument: number;
     groups: ReceiptEvidenceGroup[];
+    evidencePricing?: EvidencePricing | undefined;
   }) {
     return this.store.recordVerified(input);
   }

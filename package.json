@@ -27,12 +27,13 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "npm run typecheck && esbuild src/index.ts src/cli.ts src/backend.ts src/backend-entry.ts src/hosted-entry.ts --bundle --packages=external --platform=node --target=node20 --format=esm --outdir=dist --banner:js=\"#!/usr/bin/env node\"",
+    "build": "npm run typecheck && esbuild src/index.ts src/cli.ts src/backend.ts src/backend-entry.ts src/hosted-entry.ts src/codex-launch.ts --bundle --packages=external --platform=node --target=node20 --format=esm --outdir=dist --banner:js=\"#!/usr/bin/env node\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke": "node scripts/smoke.mjs",
     "doctor": "npm run build --silent && node dist/cli.js doctor",
     "doctor:live": "npm run build --silent && node dist/cli.js doctor --live",
+    "codex": "npm run build --silent && node dist/codex-launch.js",
     "start:hosted": "node dist/hosted-entry.js",
     "setup": "node scripts/install.mjs",
     "setup:plan": "node scripts/install.mjs --dry-run --json",

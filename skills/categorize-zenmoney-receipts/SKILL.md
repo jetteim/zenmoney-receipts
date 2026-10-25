@@ -46,7 +46,7 @@ Require the operation-specific preview/apply/recovery tools before offering a fi
 2. Call `zenmoney_connection_status` and `zenmoney_receipt_memory_status`. If ZenMoney is not configured, stop and direct the user to the setup instructions. Receipt-memory failure must not block the financial workflow.
 3. Call `zenmoney_sync`, then `zenmoney_list_categories` and, when account choice matters, `zenmoney_list_accounts`.
 4. Call `zenmoney_match_receipt` with the extracted facts. Omit an unidentified date so the connector uses and marks host-local today as a search suggestion. Do not invent missing values.
-5. If `ambiguous` is true, present the bounded candidates with date, amount, account, and payee, then ask the user to select one or clarify. Do not preview or apply yet.
+5. If the candidates list is empty and provenance says `no-candidates`, use the new-receipt path. If candidates exist and `ambiguous` is true, present the bounded candidates with date, amount, account, and payee, then ask the user to select one or clarify. Do not preview or apply yet.
 6. Select the narrowest existing categories supported by the receipt. Prefer a child category over its parent. Explain each allocation briefly. When receipt memory is enabled, also form no more than 10 sanitized `evidenceGroups` with exact supported subtotals and item counts. Each `purpose` must be a durable narrow leaf such as `Fresh fruit`, `Fresh vegetables`, or `Herbs`. Never use umbrella purposes such as `Produce`, `Groceries`, `Food`, `Other`, raw item text, a merchant, brand, product, or SKU. Each `categoryId` must be one used by the proposed receipt transactions.
 7. Choose exactly one preview path:
    - Existing expense, category only: `zenmoney_preview_receipt_category` with the approved `evidenceGroups` when available.
@@ -71,3 +71,9 @@ After preparing the receipt plan, compare its meaningful line-item groups with t
 ## Mixed receipts
 
 Use exact receipt line-item or subtotal evidence to allocate a mixed receipt into expense parts. If the receipt does not support exact amounts, ask the user or preview one whole-transaction category/tag combination as an explicit approximation. After confirmation, apply the exact preview rather than refusing it as a partial result.
+
+## Full-price evidence
+
+When the user requests pre-discount tracking, keep financial parts equal to the actual paid receipt total. Supply `evidencePricing` with `beforeDiscountTotal`, `discountTotal`, and `coverage` alongside full-price `evidenceGroups`. Full price minus discounts must equal the paid total; complete groups must sum to full price. Some receipts print net line amounts next to informational discounts: reconcile the arithmetic before adding or subtracting discounts. Loyalty-card tender is payment, not a discount.
+
+If a running connector lacks `evidencePricing`, report the outdated capability; do not omit items just to fit its old paid-total cap. Existing verified expenses can attach missing evidence through an unchanged reconciliation preview/apply, with no financial updates. Existing partial records need a separate exact local completion preview; never duplicate an expense or change a record's original group amounts to retain missing evidence.

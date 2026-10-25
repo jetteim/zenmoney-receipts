@@ -10,6 +10,33 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 
 ## Named maintenance work
 
+### F-032 — Recover credential discovery across process contexts
+
+- User outcome: use an existing valid Keychain credential without pasting it into chat; distinguish process access failures from upstream token rejection.
+- Acceptance: validated username fallback when Directory Services fails; bounded private Keychain lookup; no credential/raw error in status or diagnostics; trusted-terminal launcher passes credential only in child environment with explicit MCP env_vars forwarding. No hook disabling, permanent secret config or financial-validation changes.
+- Dependencies/traceability: F-002, F-006; VS-03 / C-05 onboarding, VS-04 / C-09 diagnosis.
+- Blast radius/rollback: additive discovery/status fields and optional launcher; revert this feature diff and stop the launched session. No Keychain item or persisted Codex configuration changes.
+- Verification: synthetic account/Keychain/error/launcher tests, full check, sanitized read-only doctor and user terminal comparison. A launched session verified environment-based credentials and live MCP synchronization; the 2026-10-25 read-only live doctor also passed outside the sandbox. Direct Keychain access in the original restricted process remains unresolved.
+- State: complete for the trusted-terminal launcher path; see [verification](../evidence/2026-10-19-keychain-process-context.md) and [publication recheck](../evidence/2026-10-25-prepush-verification.md) for exact test/live boundaries.
+
+### F-031 — Package and submit the receipt skill to Agensi
+
+- User outcome: installable skill instructions with accurate prerequisites, listing copy, synthetic demonstration, license and submission handoff.
+- Acceptance: allowlisted ZIP validates references and excludes private data; actual browser form requirements completed; verify review state after submission. Do not claim marketplace approval or untested host compatibility.
+- Dependencies/traceability: F-029; VS-03 / C-05 onboarding. Standalone skill publication does not authorize public hosted operation (F-014P).
+- Risks: marketplace-generated claims must be reviewed; MCP installation remains separate. Price: free for the initial MIT receipt listing.
+- Blast radius/rollback: packaging/docs and authorized listing only; withdraw or edit listing independently of connector runtime.
+- State: receipt skill submitted and pending Agensi review; package validation and browser status verified. Optional companion packages prepared but not submitted.
+
+### F-030 — Retain complete pre-discount evidence
+
+- User outcome: retain every supported full-price purpose group even when discounts make the paid total smaller.
+- Acceptance: strict cent-precision gross minus discounts equals paid; complete groups sum to gross; signed preview/apply binding; no weakening of financial validation; legacy paid cap unchanged; stale no-op operations blocked. Completion may append only missing groups to explicitly partial before-discount evidence, retaining existing facts and category references.
+- Dependencies/traceability: F-017, F-028; VS-01 / C-02 verified completion and VS-05 / C-17 evidence clarity.
+- Risks: pricing is caller-supported receipt evidence, not independently observed by the server. Running connectors require restart. Never infer gross prices by adding discounts twice or treating loyalty tender as a discount.
+- Blast radius/rollback: additive receipt preview/memory validation and local CLI correction; revert runtime independently of retained evidence. Local corrections retain atomic recovery and exact revision/digest checks.
+- State: complete; 94 offline tests passed, one hosted opt-in skipped, read-only live doctor passed; authorized evidence-only repairs verified. See [sanitized verification](../evidence/2026-10-17-full-price-evidence.md). F-025/F-026 remain paused.
+
 ### F-029 — Review and maintain authored skills
 
 - User outcome: shorter discoverable skills with explicit connector dependencies, packaged storage constraints and synthetic fresh-run evaluation infrastructure.

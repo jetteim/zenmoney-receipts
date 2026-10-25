@@ -131,6 +131,36 @@ function writes(backend: ReceiptBackend) {
 afterEach(() => vi.useRealTimers());
 
 describe("receipt reconciliation", () => {
+  it("retains full prices on create and attaches missing evidence through a no-write reconciliation", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "zenmoney-full-price-test-"));
+    try {
+      const backend = new ReceiptBackend();
+      const memory = new ReceiptMemoryController(new ReceiptMemoryStore(directory));
+      const settings = await memory.previewSettings({ enabled: true });
+      await memory.applySettings({ previewToken: settings.previewToken, confirmed: true });
+      const service = new ZenMoneyReceiptService(backend, undefined, undefined, undefined, undefined, undefined, undefined, memory);
+      const evidenceGroups = [{ purpose: "Fresh fruit", categoryId: "food", amount: 8, itemCount: 2 }];
+      const evidencePricing = { beforeDiscountTotal: 8, discountTotal: 2, coverage: "complete" as const };
+      const input = { receiptTotal: 6, accountId: "account-1", date: "2026-08-16", parts: [{ amount: 6, tagIds: ["food"] }], evidenceGroups, evidencePricing };
+      await expect(service.previewNewReceipt({ ...input, receiptTotal: 7 })).rejects.toThrow("minus discounts");
+      const preview = await service.previewNewReceipt(input);
+      expect(preview.receiptMemory).toMatchObject({ evidencePricing, coverage: "complete" });
+      const applied = await service.applyNewReceipt({ previewToken: preview.previewToken, confirmed: true });
+      expect(applied.transactions[0]!.outcome).toBe(6);
+      expect((await memory.get(applied.receiptMemory.status === "recorded" ? applied.receiptMemory.recordId! : "")).record)
+        .toMatchObject({ amountBasis: "before-discounts", coverage: "complete", groups: evidenceGroups });
+      const beforeWrites = writes(backend).length;
+      const repair = await service.previewReceiptReconciliation({ receiptTotal: 6,
+        allocations: [{ transactionId: "source-1", parts: [{ amount: 6, tagIds: ["food"] }] }], evidenceGroups, evidencePricing });
+      const repaired = await service.applyReceiptReconciliation({ previewToken: repair.previewToken, confirmed: true });
+      expect(repaired).toMatchObject({ verified: true, receiptMemory: { status: "recorded" } });
+      expect(writes(backend)).toHaveLength(beforeWrites);
+      const category = await service.previewCategory({ transactionId: "source-1", tagIds: ["food"], evidenceGroups, evidencePricing });
+      backend.transactions.get("source-1")!.changed = 999;
+      await expect(service.applyCategory({ previewToken: category.previewToken, confirmed: true })).rejects.toThrow("changed");
+    } finally { await rm(directory, { recursive: true, force: true }); }
+  });
+
   it("previews without writes, then corrects the total, creates a split, and is idempotent", async () => {
     const backend = new ReceiptBackend();
     const service = new ZenMoneyReceiptService(backend);

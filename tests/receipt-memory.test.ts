@@ -38,6 +38,39 @@ async function enable(store: ReceiptMemoryStore, now = Date.now()): Promise<void
 }
 
 describe("receipt memory", () => {
+  it("requires reconciled full-price evidence and preserves the legacy paid cap", () => {
+    const groups = [{ ...fruit, amount: 12 }];
+    const pricing = { beforeDiscountTotal: 12, discountTotal: 2, coverage: "complete" as const };
+    expect(validateReceiptEvidenceGroups(groups, 10, pricing)).toEqual(groups);
+    expect(() => validateReceiptEvidenceGroups(groups, 10)).toThrow("exceed");
+    expect(() => validateReceiptEvidenceGroups(groups, 10, { ...pricing, discountTotal: 1 })).toThrow("minus discounts");
+    expect(() => validateReceiptEvidenceGroups([{ ...fruit, amount: 11 }], 10, pricing)).toThrow("complete evidence");
+    expect(() => validateReceiptEvidenceGroups([], 10, pricing)).toThrow("requires groups");
+    expect(() => validateReceiptEvidenceGroups(groups, 10, { ...pricing, discountTotal: 2.001 })).toThrow("invalid");
+    expect(() => validateReceiptEvidenceGroups([{ ...fruit, amount: 13 }], 10, { ...pricing, coverage: "partial" })).toThrow("exceed");
+  });
+
+  it("completes partial evidence by appending groups with exact totals and revision checks", async () => {
+    const store = new ReceiptMemoryStore(await root());
+    await enable(store);
+    const saved = await store.recordVerified({ transactionIds: ["completion-fixture"], receiptDate: "2026-09-01", instrument: 2,
+      groups: [{ ...fruit, amount: 8 }], evidencePricing: { beforeDiscountTotal: 12, discountTotal: 2, coverage: "partial" } });
+    const completion = { paidTotal: 10, pricing: { beforeDiscountTotal: 12, discountTotal: 2, coverage: "complete" },
+      appendGroups: [{ ...fruit, purpose: "Eggs", amount: 4 }] };
+    const request = { expectedRevision: (await store.status()).revision!, corrections: [{ recordId: saved.recordId!, completion }] };
+    const preview = await store.previewCorrection(request);
+    expect((await store.get(saved.recordId!)).record!.groups).toHaveLength(1);
+    await expect(store.previewCorrection({ ...request, corrections: [{ recordId: saved.recordId!, completion: { ...completion,
+      appendGroups: [{ ...fruit, purpose: "Eggs", amount: 4, categoryId: "another" }] } }] })).rejects.toThrow("category");
+    await expect(store.previewCorrection({ ...request, corrections: [{ recordId: saved.recordId!, completion: { ...completion,
+      appendGroups: [{ ...fruit, amount: 4 }] } }] })).rejects.toThrow("unique");
+    await expect(store.applyCorrection(request, "0".repeat(64), true)).rejects.toThrow("differs");
+    expect(await store.applyCorrection(request, preview.planDigest, true)).toMatchObject({ verified: true });
+    expect((await store.get(saved.recordId!)).record).toMatchObject({ coverage: "complete", amountBasis: "before-discounts",
+      groups: [{ ...fruit, amount: 8 }, { ...fruit, purpose: "Eggs", amount: 4 }] });
+    await expect(store.applyCorrection(request, preview.planDigest, true)).rejects.toThrow("changed");
+  });
+
   it("previews and verifies local corrections without changing amounts, categories, identity or retention", async () => {
     const directory = await root();
     const store = new ReceiptMemoryStore(directory);

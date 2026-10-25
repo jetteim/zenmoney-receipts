@@ -1,3 +1,4 @@
+import type { EvidencePricing } from "./receipt-evidence-pricing.js";
 import type { ZenTransaction } from "./types.js";
 import type {
   ReceiptEvidenceGroup,
@@ -24,6 +25,7 @@ export interface ReconciliationPlan {
   allocatedTotal: number;
   allocations: ExistingReceiptAllocation[];
   evidenceGroups: ReceiptEvidenceGroup[];
+  evidencePricing?: EvidencePricing | undefined;
 }
 
 export interface NewReceiptPlan {
@@ -35,6 +37,7 @@ export interface NewReceiptPlan {
   comment: string | null;
   parts: PlannedReceiptPart[];
   evidenceGroups: ReceiptEvidenceGroup[];
+  evidencePricing?: EvidencePricing | undefined;
 }
 
 export type ReceiptMemoryResult =
