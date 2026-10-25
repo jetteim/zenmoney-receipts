@@ -25,7 +25,7 @@
 | VS-03 private onboarding / C-05 local install/auth | F-002 | JSON plan/doctor/schema; secure Keychain handoff | agent-install tests; doctor | Complete |
 | VS-03 / C-06 obsolete laptop transport | F-003 | Tunnel files and active instructions removed | repository search and verifier | Retired |
 | VS-03 laptop-independent ChatGPT / C-10, C-14 | F-007, F-014 | HTTP MCP resource server; bearer/origin validation; tenant sessions; encrypted OAuth lifecycle; exact tenant-data deletion; deployment/policy boundaries | hosted auth/server/store/HTTP/tenant-deletion tests; Docker and deploy docs | Repository complete; external staging gated |
-| VS-04 dependable operation / C-07 release hygiene | F-004 | CI, lockfile, policies, DoD | `npm run check`; GitHub Actions | Complete locally; CI per push |
+| VS-04 dependable operation / C-07 release hygiene | F-004 | CI, lockfile, policies, DoD | `npm run check`; GitHub Actions; [publication verification](../evidence/2026-10-25-prepush-verification.md) | Local checks pass; 2026-10-25 CI production dependency audit blocks release |
 | VS-04 / C-08 crash recovery | F-005 | Minimal persistent journal and recovery tools | operation-journal, service, MCP tests | Complete offline |
 | VS-04 / C-09 diagnosis | F-006 | Allowlisted events, support bundle, doctor, troubleshooting | observability/adversarial tests; CLI smoke | Complete local support boundary; hosted telemetry gated |
 | VS-05 category clarity / C-12 analysis | F-009 | Read-only summary plus agent recommendation contract | summary tests; review skill | Complete |

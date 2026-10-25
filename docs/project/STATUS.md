@@ -64,6 +64,8 @@ External work remains a separate choice: assign an operator and satisfy F-007 be
 
 ## Known limits
 
+- Publication CI for `c630087` passed `npm run ci` on Node 20/22 but failed the production dependency-audit gate. The Node 22 audit reported nine findings (three moderate, five high, one critical), including SDK/transitive HTTP dependencies and Zod through the backend. This blocks release readiness; no audit suppression or dependency migration was attempted. See [publication verification](../evidence/2026-10-25-prepush-verification.md).
+
 - Unapplied preview tokens are process-local and expire; the persistent journal supports recovery of started operations, not reuse of stale previews.
 - Category consolidation refuses any source referenced by a budget. It does not guess or partially migrate.
 - ZenMoney's public API documentation has known drift; live verification remains a release gate after backend/API changes.

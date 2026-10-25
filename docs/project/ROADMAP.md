@@ -8,6 +8,8 @@ Roadmap IDs are stable. “Proceed” selects the first unblocked entry in `Read
 2. Review existing categories plus narrow retained receipt evidence → suggest more or less granular grouping → safely implement an explicitly approved structure.
 3. Review granular history → suggest realistic savings with bounded evidence and no writes.
 
+Publication gate (2026-10-25): F-030/F-031/F-032 source changes were pushed as `c630087`. CI application/integration checks passed, but the production dependency audit failed; dependency remediation and a passing audit are required before release readiness. See [verification](../evidence/2026-10-25-prepush-verification.md). This does not resume F-025/F-026.
+
 ## Named maintenance work
 
 ### F-032 — Recover credential discovery across process contexts

@@ -20,3 +20,9 @@ Diagnostic signals: `auth.zenmoney`, `live.zenmoney-readonly`, `credentialSource
 No financial writes, receipt-memory changes, secret configuration edits, hook changes, deployment or marketplace resubmission were performed for this publication check. Personal receipts, evidence groups and financial exports remain outside the checkout; this file contains engineering verification only.
 
 Rollback: revert the publication commit through ordinary Git history and rebuild the previous source. Stop the optional launched CLI session to end its process-local credential forwarding. Stored receipt evidence and the existing Keychain entry are independent of the code revert. Hosted deployment, OAuth verification, other-host compatibility and current marketplace approval remain unverified.
+
+## Remote publication and CI result
+
+`git push origin main` succeeded for `c630087701d2f217ba8e839ea24e94ded16ea678`; the GitHub branch reference matched local HEAD and the working tree was clean. The [CI run](https://github.com/jetteim/zenmoney-receipts/actions/runs/40225670873) completed with failure: `npm run ci` passed on Node 20 and 22, including hosted-process integration checks, but `npm audit --omit=dev --audit-level=high` failed. Node 22 reported nine production findings: three moderate, five high and one critical. The Node 20 job was ultimately marked cancelled by matrix fail-fast after reaching its audit step.
+
+Audit findings cover the MCP SDK, body-parser, fast-uri, hono, ip-address, proxy-addr, qs, Zod and the backend's Zod dependency chain. The report offers upgrades for several packages but no automatic fix for the backend/Zod chain. No dependency upgrades, audit exceptions or threshold changes were introduced by this publication task. These findings block release readiness even though the requested commit and push succeeded. Review exact package compatibility before remediation; this record does not assess exploitability in a deployed service.
